@@ -1,9 +1,9 @@
-name: Publish on Release
+name: Upload Python Package
 
 on:
-  push:
+  pull_request:
     branches:
-      - main
+    - main
 
 permissions:
   contents: read
@@ -25,7 +25,6 @@ jobs:
         pip install build
         pip install -r requirements.txt
     - name: Build package
-      run: echo "I swear man it better run the correct command"
       run: python -m build
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29

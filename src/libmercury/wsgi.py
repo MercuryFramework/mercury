@@ -1,5 +1,6 @@
 from .route_management import Route
 from werkzeug import Request, Response
+from routes import Mapper
 import importlib.util
 import json
 import os
@@ -8,6 +9,14 @@ class WSGIApp:
     def __init__(self):
         self.routes = []
         self.load_project()
+        self.mapper = Mapper()
+        self.load_mapper()
+
+    def load_mapper(self):
+        for route in self.routes:
+            if route.url[-1] == "/":
+                route.url = route.url[:-1]
+            self.mapper.connect(None, route.url, controller=route.handler)
 
     def load_project(self):
         # Load the map.json file
@@ -47,20 +56,23 @@ class WSGIApp:
         # Create a Request object from WSGI environment
         request = Request(environ)
         
-        # Extract the request method and path
         method = request.method
         path = request.path
-        
-        # Find the route matching the request
-        for route in self.routes:
-            if route.method == method and route.url == path:
-                # Call the route handler
-                handler_response = route.handler(request)        
-                return handler_response(environ, start_response)
-
-        # No route found
-        response = Response('Not Found', status=404, content_type='text/plain')
-        return response(environ, start_response)
+        try:
+            route = dict(self.mapper.match(path))
+        except:
+            response = Response('Not Found', status=404, content_type='text/html')
+            return response(environ, start_response)
+        controller = route.get("controller")
+        if controller == None:
+            response = Response('Not Found', status=404, content_type='text/html')
+            return response(environ, start_response)
+        if not method == controller._route_method:
+            response = Response('Wrong method', status=405, content_type='text/html')
+            return response(environ, start_response)
+        del route["controller"]
+        args = list(route.values())
+        return controller(request, *args)(environ, start_response)
 
     def __call__(self, environ, start_response):
         return self.wsgi_handler(environ, start_response)

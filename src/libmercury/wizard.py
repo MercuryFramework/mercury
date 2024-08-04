@@ -64,7 +64,6 @@ class CLI:
             f.write("""from libmercury.wsgi import WSGIApp
 from werkzeug.serving import run_simple
 app = WSGIApp()
-app.load_project()
 run_simple("localhost", 8000, app)
                     """)
 

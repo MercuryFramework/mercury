@@ -11,6 +11,7 @@ version = "0.01"
 dependencies = [
   "routes",
   "werkzeug",
+  "SQLAlchemy"
 ]
 requires-python = ">=3.8"
 authors = [

@@ -1,7 +1,9 @@
 from json import dumps
 from json import loads
+from libmercury.db import MigrationSystem
 from .version import version
 import os
+import importlib.util
 class CLI:
     def __init__(self, arguments) -> None:
         self.arguments = arguments
@@ -46,6 +48,7 @@ class CLI:
             f.write(dumps({
                 "interpreter": interpreter,
                 "version": version,
+                "db_version": 000000,
                 "controlers": [],
                 "models": [],
                 "validators": [],
@@ -55,11 +58,11 @@ class CLI:
         with open(f"{directory}/src/cargo/dev.db", "w") as f:
             f.write("")
 
-        with open(f"{directory}/src/cargo/db_connect.json", "w") as f:
-            f.write(dumps({
-                "url": "sqlite:///src/models/dev.db",
-            }))
-
+        with open(f"{directory}/src/cargo/connection.py", "w") as f:
+            f.write("""from libmercury.db import connection
+Connection = connection("sqlite:///src/cargo/dev.db", echo=False)
+#Connection.Engine - The engine
+#Connection.Session - The session connected to the db""")
         with open(f"{directory}/app.py", "w") as f:
             f.write("""from libmercury.wsgi import WSGIApp
 from werkzeug.serving import run_simple
@@ -81,6 +84,13 @@ run_simple("localhost", 8000, app)
         with open(f"{directory}/src/cargo/migrations/.mercury", "w") as f:
             f.write(f"{os.getcwd()}/{directory}")
 
+    def _import_module(self, file_path):
+        module_name = os.path.splitext(os.path.basename(file_path))[0]
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
     def create(self):
         if len(self.arguments) < 2:
             print("Error: Command 'create' requires at least 2 parameters")
@@ -95,10 +105,11 @@ run_simple("localhost", 8000, app)
             "preprocesser": self._create_preprocesser,
             "model": self._create_model,
             "jwt": self._create_jwt,
+            "migration": self._create_migration
         }
         try:
             things[thing](named)
-        except KeyError:
+        except KeyError as e:
             print(f"Error: Unknown createable {thing}")
             print("Usage:")
             print("create <thing> <named>")
@@ -124,14 +135,77 @@ class {name}Controler:
     def _create_preprocesser(self, name):
         pass
 
+    def _create_migration(self, message):
+        #Get all models
+        with open("map.json", "r") as f:
+            map_json = loads(f.read())
+            model_paths = map_json["models"]
+        #Run migrator
+        print("[Migrator] Starting Migrator")
+        migrator = MigrationSystem("src/cargo/connection.py", model_paths)
+        migrator._create_migration()
+
     def _create_model(self, name):
-        pass
+        with open(f"src/cargo/{name}Model.py", "w") as f:
+            f.write(f"""from libmercury.db import Column, Integer, Base
+
+class {name}(Base):
+    __tablename__ = "{name}"
+    id = Column(Integer, primary_key=True)""")
+        with open("map.json", "r") as f:
+            map_json = loads(f.read())
+            map_json["models"].append(f"src/cargo/{name}Model.py")
+        with open("map.json", "w") as f:
+            f.write(dumps(map_json))
 
     def _create_jwt(self, name):
         pass
 
     def migrate(self):
-        pass
+        #Get current version
+        with open("map.json", "r") as f:
+            map = loads(f.read())
+        db_version = map["db_version"]
+        migrations = []
+        latest_migration_id = 0
+
+        #Get all non-runned migrations
+        for file in os.listdir("src/cargo/migrations"):
+            if file.endswith('.py') and os.path.isfile(os.path.join("src/cargo/migrations", file)):
+                try:
+                    if int(file[:-3]) > db_version:
+                        if int(file[:-3]) > latest_migration_id:
+                            latest_migration_id = int(file[:-3])
+                        migrations.append(os.path.join("src/cargo/migrations", file))
+                except ValueError:
+                    pass
+
+        # Extract the database URL from the `Connection` object
+        module = self._import_module("src/cargo/connection.py")
+        if hasattr(module, 'Connection'):
+            connection = module.Connection
+            # Extracting the database URL from the connection object
+            # This depends on the actual implementation of `connection` in `libmercury.db`
+            if hasattr(connection, 'Engine'):
+                db_url = connection.Engine.url
+            else:
+                raise AttributeError("The 'Connection' object does not have an 'engine' or 'url' attribute.")
+        else:
+            raise AttributeError("The module does not have a 'Connection' object.")
+        
+        for migration in migrations:
+            print(f"[Migrator] Running migration {migration}")
+            try:
+                module = self._import_module(migration).upgrade(db_url)
+                print(f"[Migrator] '{migration}' passed with no errors")
+            except Exception as e:
+                print(f"Migration: '{migration}' failed with error:")
+                print(e)
+
+        #Update map
+        map["db_version"] = latest_migration_id 
+        with open("map.json", "w") as f:
+            f.write(dumps(map))
 
     def run(self):
         pass

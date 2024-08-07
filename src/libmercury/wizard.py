@@ -242,10 +242,12 @@ class {name}Jwt:
             f.write(dumps(map))
 
     def run(self):
-        pass
+        with open("map.json", "r") as f:
+            map = loads(f.read())
+        os.system(f"{map['interpreter']} app.py")
 
     def unknown_command(self):
-        pass
+        print("Error: Unknown Command")
 
     def version_display(self):
         print(r""" __  __                               

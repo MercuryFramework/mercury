@@ -103,7 +103,7 @@ run_simple("localhost", 8000, app)
 
         things = {
             "controler": self._create_controler,
-            "preprocesser": self._create_validator,
+            "validator": self._create_validator,
             "model": self._create_model,
             "jwt": self._create_jwt,
             "migration": self._create_migration

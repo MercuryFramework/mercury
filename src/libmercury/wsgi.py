@@ -72,6 +72,44 @@ class WSGIApp:
             return response(environ, start_response)
         del route["controller"]
         args = list(route.values())
+        if hasattr(controller, "_validator"):
+            print("Debug: Validator detected")
+            validator = controller._validator
+
+            #Find all fields 
+            class_vars = {}
+            for name, value in validator.__dict__.items():
+                if not name.startswith('__') and not callable(value):
+                    class_vars[name] = value
+            
+            #Go through the request data, only json and html are supported
+            try:
+                data = request.json
+            except:
+                try:
+                    data = request.form
+                except:
+                    return Response("TODO: Error message for no data provided")(environ, start_response)
+            if not data:
+                return Response("TODO: Error message for no data provided")(environ, start_response)
+
+            class_fields = list(class_vars.keys())
+            request_fields = list(data.keys())
+
+            for field in class_fields:
+                if field not in request_fields:
+                    print(field)
+                    print(request_fields)
+                    return Response("TODO: Error message for missing field")(environ, start_response)
+                else:
+                    value = data[field]
+                    validator = class_vars[field]
+                    print(validator)
+                    print(field)
+                    print(class_vars)
+                    if not validator.validate(value):
+                        return Response(f"TODO: Error message for invalid field {field}")(environ, start_response)
+
         return controller(request, *args)(environ, start_response)
 
     def __call__(self, environ, start_response):

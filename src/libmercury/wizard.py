@@ -12,7 +12,6 @@ class CLI:
         try:
             with open(".mercury", "r") as f:
                 os.chdir(f.read())
-            print("Directory changed! (:")
         except:
             pass
         del self.arguments[0]
@@ -102,7 +101,7 @@ run_simple("localhost", 8000, app)
 
         things = {
             "controler": self._create_controler,
-            "preprocesser": self._create_preprocesser,
+            "preprocesser": self._create_validator,
             "model": self._create_model,
             "jwt": self._create_jwt,
             "migration": self._create_migration
@@ -132,8 +131,18 @@ class {name}Controler:
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
 
-    def _create_preprocesser(self, name):
-        pass
+    def _create_validator(self, name):
+        with open(f"src/validators/{name}Validator.py", "w") as f:
+            f.write(f"""from libmercury import Validator 
+class {name}Validator:
+        """)
+        
+        #Update Map.json
+        with open("map.json", "r") as f:
+            map_json = loads(f.read())
+            map_json["validators"].append(f"src/validators/{name}Validator.py")
+        with open("map.json", "w") as f:
+            f.write(dumps(map_json))
 
     def _create_migration(self, message):
         #Get all models

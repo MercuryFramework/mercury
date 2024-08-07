@@ -91,7 +91,7 @@ class WSGIApp:
 
             try:
                 if not autherization._verify(token):
-                    rsp = Response("Error: Invalid signature provided")
+                    rsp = Response("Error: Invalid signature in token")
                     rsp.status_code = 400
                     return rsp(environ, start_response)
             except ValueError:
@@ -116,9 +116,11 @@ class WSGIApp:
                     data = request.form
                 except:
                     rsp = Response("Error: No data provided")
+                    rsp.status_code = 400
                     return rsp(environ, start_response)
             if not data:
                 rsp = Response("Error: No data provided")
+                rsp.status_code = 400
                 return rsp(environ, start_response)
 
             class_fields = list(class_vars.keys())
@@ -127,12 +129,14 @@ class WSGIApp:
             for field in class_fields:
                 if field not in request_fields:
                     rsp = Response(f"Error: Missing field '{field}'")
+                    rsp.status_code = 400
                     return rsp(environ, start_response)
                 else:
                     value = data[field]
                     validator = class_vars[field]
                     if not validator.validate(value):
                         rsp = Response(f"Error: type mismatch in field '{field}'")
+                        rsp.status_code = 400
                         return rsp(environ, start_response)
 
         return controller(request, *args)(environ, start_response)

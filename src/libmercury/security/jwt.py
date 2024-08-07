@@ -11,7 +11,7 @@ class JWT:
         self.header = {} 
         self.payload = {} 
         self.signature = "" 
-        if token != "":
+        if token != "" and token != None:
             self._parse_token()
 
     def _parse_token(self):
@@ -43,6 +43,8 @@ class JWT:
         return self.signature
 
     def verify_signature(self, pem_file_path):
+        if self.token == None or self.token == "":
+            return False
         with open(pem_file_path, 'rb') as pem_file:
             key_data = pem_file.read()
 
@@ -72,7 +74,7 @@ class JWT:
                 return False
 
         else:
-            raise ValueError(f"Unsupported algorithm: {self.header['alg']}")
+            return False
 
     def to_string(self):
         header_encoded = self._base64_url_encode(json.dumps(self.header).encode())

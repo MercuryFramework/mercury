@@ -72,8 +72,30 @@ class WSGIApp:
             return response(environ, start_response)
         del route["controller"]
         args = list(route.values())
+        if hasattr(controller, "_auth"):
+            autherization = controller._auth
+            cookie = controller._auth_cookie
+            if cookie:
+                token = request.cookies.get(cookie)
+            else:
+                print("Attempt to load token")
+                token = request.headers.get("Authorization")
+                print("Token")
+                if not token:
+                    return Response("TODO: Error message for no Autherization header or cookie")(environ, start_response)
+                if token.startswith("Bearer"):
+                    token = token[7:]
+
+            if not token:
+                return Response("TODO: Error message for no Autherization header or cookie")(environ, start_response)
+
+            try:
+                if not autherization._verify(token):
+                    return Response("TODO: Error message for authentication failed")(environ, start_response)
+            except ValueError:
+                return Response("TODO: Error message for invalid jwt")(environ, start_response)
+
         if hasattr(controller, "_validator"):
-            print("Debug: Validator detected")
             validator = controller._validator
 
             #Find all fields 
@@ -104,9 +126,6 @@ class WSGIApp:
                 else:
                     value = data[field]
                     validator = class_vars[field]
-                    print(validator)
-                    print(field)
-                    print(class_vars)
                     if not validator.validate(value):
                         return Response(f"TODO: Error message for invalid field {field}")(environ, start_response)
 

@@ -1,5 +1,6 @@
 from json import dumps
 from json import loads
+from libmercury.security import keygen 
 from libmercury.db import MigrationSystem
 from .version import version
 import os
@@ -41,6 +42,7 @@ class CLI:
         os.mkdir(f"{directory}/src/cargo")
         os.mkdir(f"{directory}/src/cargo/migrations")
         os.mkdir(f"{directory}/src/security")
+        os.mkdir(f"{directory}/src/.vault")
         
         #Create files
         with open(f"{directory}/map.json", "w") as f:
@@ -168,7 +170,30 @@ class {name}(Base):
             f.write(dumps(map_json))
 
     def _create_jwt(self, name):
-        pass
+        key_type = keygen.main(name)
+        public_key = f"{name}Public_key.pem"
+        private_key = f"{name}Private_key.pem"
+        if key_type == "HMAC":
+            public_key = f"{name}Hmac_secret.key"
+            private_key = f"{name}Hmac_secret.key"
+        with open(f"src/security/{name}Jwt.py", "w") as f:
+            f.write(f"""from libmercury.security import JWT
+@staticmethod
+class {name}Jwt:
+    def _makeJwt(body:dict):
+        jwt = JWT("")
+        jwt.payload = body
+        return jwt.sign("src/.vault/{private_key}", "{key_type}")
+
+@staticmethod
+    def _verify(jwt):
+        jwt = JWT(jwt)
+        return jwt.verify_signature("src/.vault/{public_key}")""")
+        with open("map.json", "r") as f:
+            map_json = loads(f.read())
+            map_json["security"].append(f"src/secuirty/{name}Jwt.py")
+        with open("map.json", "w") as f:
+            f.write(dumps(map_json))
 
     def migrate(self):
         #Get current version

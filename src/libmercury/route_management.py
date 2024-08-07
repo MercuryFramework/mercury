@@ -1,5 +1,15 @@
 from functools import wraps
 
+def useAutherization(auth, **kwargs):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        wrapper._auth = auth 
+        wrapper._auth_cookie = kwargs.get("cookie")
+        return wrapper
+    return decorator
+
 def useValidator(validator):
     def decorator(func):
         @wraps(func)

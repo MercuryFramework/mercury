@@ -89,14 +89,9 @@ class WSGIApp:
                 if token.startswith("Bearer"):
                     token = token[7:]
 
-            try:
-                if not autherization._verify(token):
-                    rsp = Response("Error: Invalid signature in token")
-                    rsp.status_code = 400
-                    return rsp(environ, start_response)
-            except ValueError:
-                rsp = Response("Error: Invalid or malformed JWT token")
-                rsp.status_code = 400
+            if not autherization._verify(token):
+                rsp = Response("Error: Invalid signature in token")
+                rsp.status_code = 403
                 return rsp(environ, start_response)
 
         if hasattr(controller, "_validator"):

@@ -118,10 +118,11 @@ run_simple("localhost", 8000, app)
     def _create_controler(self, name):
         #Create placeholder
         with open(f"src/controlers/{name}Controler.py", "w") as f:
-            f.write(f"""from libmercury import GETRoute, Response
+            f.write(f"""from libmercury import GETRoute, Request, Response
 class {name}Controler:
+    @staticmethod
     @GETRoute("/example")
-    def example(request):
+    def example(request: Request):
         response = Response("<h1>Example Page</h1>")
         response.headers['Content-Type'] = 'text/html'
         return response""")
@@ -133,10 +134,13 @@ class {name}Controler:
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
 
+        print(f"Successfully Created src/controlers/{name}Controler.py")
+
     def _create_validator(self, name):
         with open(f"src/validators/{name}Validator.py", "w") as f:
             f.write(f"""from libmercury import Validator 
 class {name}Validator:
+    pass
         """)
         
         #Update Map.json
@@ -145,6 +149,8 @@ class {name}Validator:
             map_json["validators"].append(f"src/validators/{name}Validator.py")
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
+
+        print(f"Successfully Created src/validators/{name}Validator.py")
 
     def _create_migration(self, message):
         #Get all models
@@ -168,6 +174,7 @@ class {name}(Base):
             map_json["models"].append(f"src/cargo/{name}Model.py")
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
+        print(f"Successfully created src/cargo/{name}Model.py")
 
     def _create_jwt(self, name):
         key_type = keygen.main(name)
@@ -178,22 +185,27 @@ class {name}(Base):
             private_key = f"{name}Hmac_secret.key"
         with open(f"src/security/{name}Jwt.py", "w") as f:
             f.write(f"""from libmercury.security import JWT
-@staticmethod
 class {name}Jwt:
+    @staticmethod
     def _makeJwt(body:dict):
         jwt = JWT("")
         jwt.payload = body
         return jwt.sign("src/.vault/{private_key}", "{key_type}")
 
-@staticmethod
+    @staticmethod
     def _verify(jwt):
-        jwt = JWT(jwt)
-        return jwt.verify_signature("src/.vault/{public_key}")""")
+        try:
+            jwt = JWT(jwt)
+            return jwt.verify_signature("src/.vault/{public_key}")
+        except ValueError:
+            return False""")
         with open("map.json", "r") as f:
             map_json = loads(f.read())
             map_json["security"].append(f"src/secuirty/{name}Jwt.py")
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
+        
+        print(f"Successfully created src/cargo/{name}Jwt.py")
 
     def migrate(self):
         #Get current version

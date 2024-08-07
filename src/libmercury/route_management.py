@@ -1,10 +1,23 @@
-def route(method, url):
+from functools import wraps
+
+def useValidator(validator):
     def decorator(func):
-        func._route_method = method
-        func._route_url = url
-        return func
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        wrapper._validator = validator
+        return wrapper
     return decorator
 
+def route(method, url):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        wrapper._route_method = method
+        wrapper._route_url = url
+        return wrapper
+    return decorator
 # HTTP method specific decorators
 def GETRoute(url):
     return route('GET', url)

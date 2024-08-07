@@ -1,1 +1,4 @@
 dist/*
+src/libmercury/__pyacache__/
+src/libmercur/db/__pycache__/
+src/libmercur/security/__pycache__/

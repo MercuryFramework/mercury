@@ -77,23 +77,27 @@ class WSGIApp:
             cookie = controller._auth_cookie
             if cookie:
                 token = request.cookies.get(cookie)
-            else:
-                print("Attempt to load token")
-                token = request.headers.get("Authorization")
-                print("Token")
                 if not token:
-                    return Response("TODO: Error message for no Autherization header or cookie")(environ, start_response)
+                    rsp = Response(f"Error: No JWT found in the '{cookie}' cookie")
+                    return rsp(environ, start_response)
+            else:
+                token = request.headers.get("Authorization")
+                if not token:
+                    rsp = Response("Error: No JWT token found in the Autherization header")
+                    rsp.status_code = 400
+                    return rsp(environ, start_response)
                 if token.startswith("Bearer"):
                     token = token[7:]
 
-            if not token:
-                return Response("TODO: Error message for no Autherization header or cookie")(environ, start_response)
-
             try:
                 if not autherization._verify(token):
-                    return Response("TODO: Error message for authentication failed")(environ, start_response)
+                    rsp = Response("Error: Invalid signature provided")
+                    rsp.status_code = 400
+                    return rsp(environ, start_response)
             except ValueError:
-                return Response("TODO: Error message for invalid jwt")(environ, start_response)
+                rsp = Response("Error: Invalid or malformed JWT token")
+                rsp.status_code = 400
+                return rsp(environ, start_response)
 
         if hasattr(controller, "_validator"):
             validator = controller._validator
@@ -111,23 +115,25 @@ class WSGIApp:
                 try:
                     data = request.form
                 except:
-                    return Response("TODO: Error message for no data provided")(environ, start_response)
+                    rsp = Response("Error: No data provided")
+                    return rsp(environ, start_response)
             if not data:
-                return Response("TODO: Error message for no data provided")(environ, start_response)
+                rsp = Response("Error: No data provided")
+                return rsp(environ, start_response)
 
             class_fields = list(class_vars.keys())
             request_fields = list(data.keys())
 
             for field in class_fields:
                 if field not in request_fields:
-                    print(field)
-                    print(request_fields)
-                    return Response("TODO: Error message for missing field")(environ, start_response)
+                    rsp = Response(f"Error: Missing field '{field}'")
+                    return rsp(environ, start_response)
                 else:
                     value = data[field]
                     validator = class_vars[field]
                     if not validator.validate(value):
-                        return Response(f"TODO: Error message for invalid field {field}")(environ, start_response)
+                        rsp = Response(f"Error: type mismatch in field '{field}'")
+                        return rsp(environ, start_response)
 
         return controller(request, *args)(environ, start_response)
 

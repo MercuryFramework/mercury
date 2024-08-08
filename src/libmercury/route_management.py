@@ -1,4 +1,6 @@
 from functools import wraps
+from jinja2 import Environment, FileSystemLoader
+from werkzeug import Response
 
 def useAutherization(auth, **kwargs):
     def decorator(func):
@@ -44,3 +46,9 @@ class Route:
     def __repr__(self):
         return f"Route(method={self.method}, url='{self.url}', handler={self.handler})"
 
+def use_template(template_name: str, **kwargs):
+    enviroment = Environment(loader=FileSystemLoader("src/templates"))
+    template = enviroment.get_template(template_name)
+    response = Response(template.render(kwargs))
+    response.headers["Content-Type"] = "text/html"
+    return response

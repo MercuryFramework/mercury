@@ -14,7 +14,7 @@ class WSGIApp:
 
     def load_mapper(self):
         for route in self.routes:
-            if route.url[-1] == "/":
+            if route.url[-1] == "/" and route.url != "/":
                 route.url = route.url[:-1]
             self.mapper.connect(None, route.url, controller=route.handler)
 

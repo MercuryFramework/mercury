@@ -1,5 +1,5 @@
 import re
-class string:
+class String:
     def __init__(self, **kwargs) -> None:
         self.kwargs = kwargs
         self.min = self.kwargs.get("min")
@@ -15,7 +15,7 @@ class string:
         if self.max == None:
             self.max = self.maximum
 
-    def validate(self, string):
+    def validate(self, string) -> bool:
         if type(string) != str:
             return False
         if self.regex:
@@ -35,7 +35,7 @@ class string:
 
         return True #Return true if all conditions are met
 
-class integer:
+class Integer:
     def __init__(self, **kwargs) -> None:
         self.kwargs = kwargs
         self.min = self.kwargs.get("min")
@@ -49,7 +49,7 @@ class integer:
         if self.max == None:
             self.max = self.maximum
 
-    def validate(self, integer):
+    def validate(self, integer) -> bool:
         if type(integer) != int:
             return False
 
@@ -62,3 +62,22 @@ class integer:
                 return False
 
         return True #Return true if all conditions are met
+class Boolean:
+    def __init__(self) -> None:
+        pass #Its a boolean, what do you want it to do
+            
+    def validate(self, boolean) -> bool:
+        if type(boolean) != boolean:
+            return False
+        return True
+
+class Union:
+    def __init__(self, *args) -> None:
+        self.types = args
+
+    def validate(self, any) -> bool:
+        for typechecks in self.types:
+            if typechecks.validate(any):
+                #If a type check passes, it is valid
+                return True
+        return False

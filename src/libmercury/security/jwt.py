@@ -4,6 +4,7 @@ from Crypto.Signature import pkcs1_15
 import json
 import hmac
 import hashlib
+import time
 import base64
 class JWT:
     def __init__(self, token):
@@ -45,6 +46,14 @@ class JWT:
     def verify_signature(self, pem_file_path):
         if self.token == None or self.token == "":
             return False
+
+        #Check to see if the token is valid
+        try:
+            if self.payload.get("exp") and int(time.time()) > int(self.payload.get("exp")):
+                return False
+        except ValueError:
+            return False
+
         with open(pem_file_path, 'rb') as pem_file:
             key_data = pem_file.read()
 

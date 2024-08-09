@@ -14,7 +14,7 @@ class WSGIApp:
 
     def load_mapper(self):
         for route in self.routes:
-            if route.url[-1] == "/":
+            if route.url[-1] == "/" and route.url != "/":
                 route.url = route.url[:-1]
             self.mapper.connect(None, route.url, controller=route.handler)
 
@@ -75,14 +75,19 @@ class WSGIApp:
         if hasattr(controller, "_auth"):
             autherization = controller._auth
             cookie = controller._auth_cookie
+            error = controller._error
             if cookie:
                 token = request.cookies.get(cookie)
                 if not token:
+                    if error:
+                        return error()(environ, start_response)
                     rsp = Response(f"Error: No JWT found in the '{cookie}' cookie")
                     return rsp(environ, start_response)
             else:
                 token = request.headers.get("Authorization")
                 if not token:
+                    if error:
+                        return error()(environ, start_response)
                     rsp = Response("Error: No JWT token found in the Autherization header")
                     rsp.status_code = 400
                     return rsp(environ, start_response)
@@ -90,12 +95,15 @@ class WSGIApp:
                     token = token[7:]
 
             if not autherization._verify(token):
+                if error:
+                    return error()(environ, start_response)
                 rsp = Response("Error: Invalid signature in token")
                 rsp.status_code = 403
                 return rsp(environ, start_response)
 
         if hasattr(controller, "_validator"):
             validator = controller._validator
+            error = controller._error
 
             #Find all fields 
             class_vars = {}
@@ -110,10 +118,14 @@ class WSGIApp:
                 try:
                     data = request.form
                 except:
+                    if error:
+                        return error()(environ, start_response)
                     rsp = Response("Error: No data provided")
                     rsp.status_code = 400
                     return rsp(environ, start_response)
             if not data:
+                if error:
+                    return error()(environ, start_response)
                 rsp = Response("Error: No data provided")
                 rsp.status_code = 400
                 return rsp(environ, start_response)
@@ -123,6 +135,8 @@ class WSGIApp:
 
             for field in class_fields:
                 if field not in request_fields:
+                    if error:
+                        return error()(environ, start_response)
                     rsp = Response(f"Error: Missing field '{field}'")
                     rsp.status_code = 400
                     return rsp(environ, start_response)
@@ -130,6 +144,8 @@ class WSGIApp:
                     value = data[field]
                     validator = class_vars[field]
                     if not validator.validate(value):
+                        if error:
+                            return error()(environ, start_response)
                         rsp = Response(f"Error: type mismatch in field '{field}'")
                         rsp.status_code = 400
                         return rsp(environ, start_response)

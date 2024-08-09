@@ -125,7 +125,7 @@ run_simple("localhost", 8000, app)
 class {name}Controler:
     @staticmethod
     @GETRoute("/example")
-    def example(request: Request):
+    def example(request: Request) -> Response:
         response = Response("<h1>Example Page</h1>")
         response.headers['Content-Type'] = 'text/html'
         return response""")

@@ -9,15 +9,17 @@ def useAutherization(auth, **kwargs):
             return func(*args, **kwargs)
         wrapper._auth = auth 
         wrapper._auth_cookie = kwargs.get("cookie")
+        wrapper._error = kwargs.get("error")
         return wrapper
     return decorator
 
-def useValidator(validator):
+def useValidator(validator, **kwargs):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
         wrapper._validator = validator
+        wrapper._error = kwargs.get("error")
         return wrapper
     return decorator
 

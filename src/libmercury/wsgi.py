@@ -1,3 +1,4 @@
+from libmercury.validation import validate
 from .route_management import Route
 from werkzeug import Request, Response
 from routes import Mapper
@@ -104,14 +105,7 @@ class WSGIApp:
         if hasattr(controller, "_validator"):
             validator = controller._validator
             error = controller._error
-
-            #Find all fields 
-            class_vars = {}
-            for name, value in validator.__dict__.items():
-                if not name.startswith('__') and not callable(value):
-                    class_vars[name] = value
-            
-            #Go through the request data, only json and html are supported
+            # Go through the request data, only json and html are supported
             try:
                 data = request.json
             except:
@@ -119,36 +113,20 @@ class WSGIApp:
                     data = request.form
                 except:
                     if error:
-                        return error()(environ, start_response)
+                        return error()
                     rsp = Response("Error: No data provided")
                     rsp.status_code = 400
-                    return rsp(environ, start_response)
+                    return rsp
             if not data:
                 if error:
-                    return error()(environ, start_response)
+                    return error()
                 rsp = Response("Error: No data provided")
                 rsp.status_code = 400
-                return rsp(environ, start_response)
+                return rsp
 
-            class_fields = list(class_vars.keys())
-            request_fields = list(data.keys())
-
-            for field in class_fields:
-                if field not in request_fields:
-                    if error:
-                        return error()(environ, start_response)
-                    rsp = Response(f"Error: Missing field '{field}'")
-                    rsp.status_code = 400
-                    return rsp(environ, start_response)
-                else:
-                    value = data[field]
-                    validator = class_vars[field]
-                    if not validator.validate(value):
-                        if error:
-                            return error()(environ, start_response)
-                        rsp = Response(f"Error: type mismatch in field '{field}'")
-                        rsp.status_code = 400
-                        return rsp(environ, start_response)
+            validation_result = validate(validator, error, data)
+            if validation_result:
+                return validation_result(environ, start_response)
 
         return controller(request, *args)(environ, start_response)
 

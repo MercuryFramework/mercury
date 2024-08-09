@@ -1,3 +1,4 @@
+from functools import wraps
 import re
 class String:
     def __init__(self, **kwargs) -> None:
@@ -81,3 +82,12 @@ class Union:
                 #If a type check passes, it is valid
                 return True
         return False
+
+def Object():
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        wrapper.__nested_validator = True
+        return wrapper
+    return decorator

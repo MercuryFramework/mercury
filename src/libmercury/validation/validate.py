@@ -1,10 +1,11 @@
 from werkzeug import Response
 
 def validate(validator, error, data):
-    # Find all fields
     class_vars = {}
     for name, value in validator.__dict__.items():
         if not name.startswith("__"):
+            if getattr(value, "__exclude_from_validation", False):
+                continue  # Skip this field if marked as excluded
             class_vars[name] = value
 
     class_fields = list(class_vars.keys())

@@ -120,9 +120,9 @@ class WSGIApp:
             if not data:
                 if error:
                     return error()
-                rsp = Response("Error: No data provided")
+                rsp = Response("Error: No data provided or data was malformed")
                 rsp.status_code = 400
-                return rsp
+                return rsp(environ, start_response)
 
             validation_result = validate(validator, error, data)
             if validation_result:

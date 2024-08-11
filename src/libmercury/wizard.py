@@ -38,6 +38,7 @@ class CLI:
         os.mkdir(directory) 
         os.mkdir(f"{directory}/src")
         os.mkdir(f"{directory}/src/templates")
+        os.mkdir(f"{directory}/src/static")
         os.mkdir(f"{directory}/src/controlers")
         os.mkdir(f"{directory}/src/validators")
         os.mkdir(f"{directory}/src/cargo")
@@ -86,6 +87,8 @@ run_simple("localhost", 8000, app)
         with open(f"{directory}/src/cargo/migrations/.mercury", "w") as f:
             f.write(f"{os.getcwd()}/{directory}")
         with open(f"{directory}/src/templates/.mercury", "w") as f:
+            f.write(f"{os.getcwd()}/{directory}")
+        with open(f"{directory}/src/static/.mercury", "w") as f:
             f.write(f"{os.getcwd()}/{directory}")
 
     def _import_module(self, file_path):

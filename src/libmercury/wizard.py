@@ -2,6 +2,7 @@ from json import loads, dumps
 from colorama import Fore, Style
 from libmercury.security import keygen 
 from libmercury.db import MigrationSystem
+from libmercury.generation import generate
 from .version import version
 import os
 import importlib.util
@@ -20,6 +21,7 @@ class CLI:
             "init": self.init,
             "create": self.create,
             "migrate": self.migrate,
+            "generate": self.generate,
             "run": self.run,
         }
         if len(self.arguments) < 1:
@@ -263,6 +265,15 @@ class {name}Jwt:
         with open("map.json", "r") as f:
             map = loads(f.read())
         os.system(f"{map['interpreter']} app.py")
+
+    def generate(self):
+        if len(self.arguments) < 2:
+            print(f"{Fore.RED}Error:{Style.RESET_ALL} Command 'generate' requires at least 1 parameters")
+            print("Usage:")
+            print("generate <name>")
+            return
+        
+        result = generate(self.arguments[1])
 
     def unknown_command(self):
         print(f"{Fore.RED}Error:{Style.RESET_ALL} Unknown Command")

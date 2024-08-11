@@ -1,3 +1,4 @@
+from werkzeug.utils import send_from_directory
 from libmercury.validation import validate
 from .route_management import Route
 from werkzeug import Request, Response
@@ -59,14 +60,22 @@ class WSGIApp:
         
         method = request.method
         path = request.path
+        if path.startswith('/static/'):
+            # Serve the static file from the directory
+            filename = path[len('/static/'):]
+            try:
+                response = send_from_directory("src/static", filename, environ, as_attachment=False)
+            except:
+                response = Response("404 Not Found", status=404, content_type='text/html')
+                return response(environ, start_response)
         try:
             route = dict(self.mapper.match(path))
         except:
-            response = Response('Not Found', status=404, content_type='text/html')
+            response = Response('404 Not Found', status=404, content_type='text/html')
             return response(environ, start_response)
         controller = route.get("controller")
         if controller == None:
-            response = Response('Not Found', status=404, content_type='text/html')
+            response = Response('404 Not Found', status=404, content_type='text/html')
             return response(environ, start_response)
         if not method == controller._route_method:
             response = Response('Wrong method', status=405, content_type='text/html')

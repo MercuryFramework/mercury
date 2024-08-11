@@ -16,9 +16,17 @@ class WSGIApp:
 
     def load_mapper(self):
         for route in self.routes:
-            if route.url[-1] == "/" and route.url != "/":
-                route.url = route.url[:-1]
-            self.mapper.connect(None, route.url, controller=route.handler)
+            if type(route) == list:
+                for r in route:
+                    if r.url[-1] == "/" and r.url != "/":
+                        r.url = r.url[:-1]
+                #Just use the first url, if they are in a list they all have the same url
+                self.mapper.connect(None, route[0].url, controller=lambda: route)
+
+            else:
+                if route.url[-1] == "/" and route.url != "/":
+                    route.url = route.url[:-1]
+                self.mapper.connect(None, route.url, controller=route)
 
     def load_project(self):
         # Load the map.json file
@@ -52,7 +60,15 @@ class WSGIApp:
             # Check if the attribute is callable and has route attributes
             if callable(method) and hasattr(method, '_route_method') and hasattr(method, '_route_url'):
                 route = Route(method._route_method, method._route_url, method)
-                self.routes.append(route)
+                #Goes through the list of routes and sees if there is already a route that has the same url
+                appended = False
+                for idx, r in enumerate(self.routes):
+                    if r.url == route.url:
+                        #Makes the route be a list of the old route and the new route
+                        self.routes[idx] = [self.routes[idx]] + [route]
+                        appended = True
+                if not appended:
+                    self.routes.append(route)
 
     def wsgi_handler(self, environ, start_response):
         # Create a Request object from WSGI environment
@@ -73,13 +89,33 @@ class WSGIApp:
         except:
             response = Response('404 Not Found', status=404, content_type='text/html')
             return response(environ, start_response)
+        
         controller = route.get("controller")
         if controller == None:
+            raise Exception("Could not find controller in route")
+        if callable(controller):
+            #This gets the list of routes that matches the url
+            #We use a function because at the moment the Routes package
+            #Auto converts everything that is not a function to a string 
+            controller = controller()
+
+        if type(controller) == list:
+            for c in controller:
+                if c.method == method:
+                    controller = c.handler
+                    break
+        else:
+            controller = controller.handler
+
+        if not controller:
             response = Response('404 Not Found', status=404, content_type='text/html')
             return response(environ, start_response)
-        if not method == controller._route_method:
-            response = Response('Wrong method', status=405, content_type='text/html')
-            return response(environ, start_response)
+        
+        if type(controller) == list:
+            #If the type is still a list, that means we did not find a method with the method we want
+            rsp = Response("Error: Wrong Method", status=405, content_type='text/html')
+            return rsp(environ, start_response)
+
         del route["controller"]
         args = list(route.values())
         if hasattr(controller, "_auth"):

@@ -1,3 +1,4 @@
+from colorama import Fore, Style
 from werkzeug.utils import send_from_directory
 from libmercury.validation import validate
 from .route_management import Route
@@ -50,7 +51,7 @@ class WSGIApp:
         # Get the controller class from the module
         controller_class = getattr(module, controller_class_name, None)
         if not controller_class:
-            print(f"[WARNING]Controller class {controller_class_name} not found in module {module_name}")
+            print(f"{Fore.YELLOW}[WARNING] Controller class {controller_class_name} not found in module {module_name}{Style.RESET_ALL}")
             return
     
         # Iterate over all attributes in the class

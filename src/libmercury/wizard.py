@@ -1,5 +1,5 @@
-from json import dumps
-from json import loads
+from json import loads, dumps
+from colorama import Fore, Style
 from libmercury.security import keygen 
 from libmercury.db import MigrationSystem
 from .version import version
@@ -100,7 +100,7 @@ run_simple("localhost", 8000, app)
 
     def create(self):
         if len(self.arguments) < 2:
-            print("Error: Command 'create' requires at least 2 parameters")
+            print(f"{Fore.RED}Error:{Style.RESET_ALL} Command 'create' requires at least 2 parameters")
             print("Usage:")
             print("create <thing> <named>")
         
@@ -117,7 +117,7 @@ run_simple("localhost", 8000, app)
         try:
             things[thing](named)
         except KeyError as e:
-            print(f"Error: Unknown createable {thing}")
+            print(f"{Fore.RED}Error:{Style.RESET_ALL} Unknown createable {thing}")
             print("Usage:")
             print("create <thing> <named>")
     
@@ -140,7 +140,7 @@ class {name}Controler:
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
 
-        print(f"Successfully Created src/controlers/{name}Controler.py")
+        print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/controlers/{name}Controler.py")
 
     def _create_validator(self, name):
         with open(f"src/validators/{name}Validator.py", "w") as f:
@@ -156,7 +156,7 @@ class {name}Validator:
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
 
-        print(f"Successfully Created src/validators/{name}Validator.py")
+        print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/validators/{name}Validator.py")
 
     def _create_migration(self, message):
         #Get all models
@@ -164,7 +164,7 @@ class {name}Validator:
             map_json = loads(f.read())
             model_paths = map_json["models"]
         #Run migrator
-        print("[Migrator] Starting Migrator")
+        print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Starting Migrator")
         migrator = MigrationSystem("src/cargo/connection.py", model_paths)
         migrator._create_migration()
 
@@ -180,7 +180,7 @@ class {name}(Base):
             map_json["models"].append(f"src/cargo/{name}Model.py")
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
-        print(f"Successfully created src/cargo/{name}Model.py")
+        print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/cargo/{name}Model.py")
 
     def _create_jwt(self, name):
         key_type = keygen.main(name)
@@ -211,7 +211,7 @@ class {name}Jwt:
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
         
-        print(f"Successfully created src/cargo/{name}Jwt.py")
+        print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/cargo/{name}Jwt.py")
 
     def migrate(self):
         #Get current version
@@ -246,12 +246,12 @@ class {name}Jwt:
             raise AttributeError("The module does not have a 'Connection' object.")
         
         for migration in migrations:
-            print(f"[Migrator] Running migration {migration}")
+            print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Running migration {migration}")
             try:
                 module = self._import_module(migration).upgrade(db_url)
-                print(f"[Migrator] '{migration}' passed with no errors")
+                print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} '{migration}' passed with no errors")
             except Exception as e:
-                print(f"Migration: '{migration}' failed with error:")
+                print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL}Migration: '{migration}' failed with error:")
                 print(e)
 
         #Update map
@@ -265,7 +265,7 @@ class {name}Jwt:
         os.system(f"{map['interpreter']} app.py")
 
     def unknown_command(self):
-        print("Error: Unknown Command")
+        print(f"{Fore.RED}Error:{Style.RESET_ALL} Unknown Command")
 
     def version_display(self):
         print(r""" __  __                               

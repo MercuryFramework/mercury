@@ -1,4 +1,5 @@
 from colorama import Fore, Style
+from json import loads, dumps
 from time import time
 
 def gen_log(message):
@@ -50,6 +51,13 @@ class {table_name}(Base):
 
     def check_password(self, password: str) -> bool:
         return verify_password(self.{password_field}, password, base64.b64decode(self.{salt_field}))""")
+
+    #Update Map.json
+    with open("map.json", "r") as f:
+        map_json = loads(f.read())
+        map_json["models"].append(f"src/cargo/{table_name}Model.py")
+    with open("map.json", "w") as f:
+        f.write(dumps(map_json))
 
     gen_log("Successfully created model")
 

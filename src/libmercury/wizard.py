@@ -2,6 +2,7 @@ from json import loads, dumps
 from colorama import Fore, Style
 from libmercury.security import keygen 
 from libmercury.db import MigrationSystem
+from libmercury.generation import generate
 from .version import version
 import os
 import importlib.util
@@ -20,6 +21,7 @@ class CLI:
             "init": self.init,
             "create": self.create,
             "migrate": self.migrate,
+            "generate": self.generate,
             "run": self.run,
         }
         if len(self.arguments) < 1:
@@ -39,7 +41,7 @@ class CLI:
         os.mkdir(f"{directory}/src")
         os.mkdir(f"{directory}/src/templates")
         os.mkdir(f"{directory}/src/static")
-        os.mkdir(f"{directory}/src/controlers")
+        os.mkdir(f"{directory}/src/controllers")
         os.mkdir(f"{directory}/src/validators")
         os.mkdir(f"{directory}/src/cargo")
         os.mkdir(f"{directory}/src/cargo/migrations")
@@ -52,7 +54,7 @@ class CLI:
                 "interpreter": interpreter,
                 "version": version,
                 "db_version": 000000,
-                "controlers": [],
+                "controllers": [],
                 "models": [],
                 "validators": [],
                 "security": []
@@ -76,7 +78,7 @@ run_simple("localhost", 8000, app)
         #Create .mercury files that allow us to run commands from anywhere in the file structure
         with open(f"{directory}/src/.mercury", "w") as f:
             f.write(f"{os.getcwd()}/{directory}")
-        with open(f"{directory}/src/controlers/.mercury", "w") as f:
+        with open(f"{directory}/src/controllers/.mercury", "w") as f:
             f.write(f"{os.getcwd()}/{directory}")
         with open(f"{directory}/src/validators/.mercury", "w") as f:
             f.write(f"{os.getcwd()}/{directory}")
@@ -108,7 +110,7 @@ run_simple("localhost", 8000, app)
         named = self.arguments[2]
 
         things = {
-            "controler": self._create_controler,
+            "controller": self._create_controller,
             "validator": self._create_validator,
             "model": self._create_model,
             "jwt": self._create_jwt,
@@ -121,11 +123,11 @@ run_simple("localhost", 8000, app)
             print("Usage:")
             print("create <thing> <named>")
     
-    def _create_controler(self, name):
+    def _create_controller(self, name):
         #Create placeholder
-        with open(f"src/controlers/{name}Controler.py", "w") as f:
+        with open(f"src/controllers/{name}Controller.py", "w") as f:
             f.write(f"""from libmercury import GETRoute, Request, Response
-class {name}Controler:
+class {name}Controller:
     @staticmethod
     @GETRoute("/example")
     def example(request: Request) -> Response:
@@ -136,11 +138,11 @@ class {name}Controler:
         #Update Map.json
         with open("map.json", "r") as f:
             map_json = loads(f.read())
-            map_json["controlers"].append(f"src/controlers/{name}Controler.py")
+            map_json["controllers"].append(f"src/controllers/{name}Controller.py")
         with open("map.json", "w") as f:
             f.write(dumps(map_json))
 
-        print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/controlers/{name}Controler.py")
+        print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/controllers/{name}Controller.py")
 
     def _create_validator(self, name):
         with open(f"src/validators/{name}Validator.py", "w") as f:
@@ -263,6 +265,15 @@ class {name}Jwt:
         with open("map.json", "r") as f:
             map = loads(f.read())
         os.system(f"{map['interpreter']} app.py")
+
+    def generate(self):
+        if len(self.arguments) < 2:
+            print(f"{Fore.RED}Error:{Style.RESET_ALL} Command 'generate' requires at least 1 parameters")
+            print("Usage:")
+            print("generate <name>")
+            return
+        
+        result = generate(self.arguments[1], CLI)
 
     def unknown_command(self):
         print(f"{Fore.RED}Error:{Style.RESET_ALL} Unknown Command")

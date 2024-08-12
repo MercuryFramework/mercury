@@ -35,7 +35,7 @@ class WSGIApp:
             config = json.load(f)
         
         # Load and register routes from controllers
-        for controller_path in config.get('controlers', []):
+        for controller_path in config.get('controllers', []):
             self._load_controller(controller_path)
 
     def _load_controller(self, controller_path):

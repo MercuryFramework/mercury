@@ -26,6 +26,7 @@ class CLI:
 		}
 		if len(self.arguments) < 1:
 			self.version_display()
+			return
 		try:
 			commands[self.arguments[0]]()
 		except KeyError:

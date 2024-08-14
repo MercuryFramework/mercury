@@ -7,11 +7,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "libmercury"
-version = "0.50"
+version = "0.70"
 dependencies = [
   "routes",
   "werkzeug",
   "colorama",
+  "MarsRouter",
   "SQLAlchemy"
 ]
 requires-python = ">=3.8"

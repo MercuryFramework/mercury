@@ -3,7 +3,7 @@ from werkzeug.utils import send_from_directory
 from libmercury.validation import validate
 from .route_management import Route
 from werkzeug import Request, Response
-from routes import Mapper
+from marsrouter import Router
 import importlib.util
 import json
 import os
@@ -12,22 +12,14 @@ class WSGIApp:
 	def __init__(self):
 		self.routes = []
 		self.load_project()
-		self.mapper = Mapper()
+		self.router = Router()
 		self.load_mapper()
 
 	def load_mapper(self):
 		for route in self.routes:
-			if type(route) == list:
-				for r in route:
-					if r.url[-1] == "/" and r.url != "/":
-						r.url = r.url[:-1]
-				#Just use the first url, if they are in a list they all have the same url
-				self.mapper.connect(None, route[0].url, controller=lambda: route)
-
-			else:
-				if route.url[-1] == "/" and route.url != "/":
-					route.url = route.url[:-1]
-				self.mapper.connect(None, route.url, controller=route)
+			if route.url[-1] == "/" and route.url != "/":
+				route.url = route.url[:-1]
+			self.router.add_route(route.url, route.handler, methods=[route.method])
 
 	def load_project(self):
 		# Load the map.json file
@@ -61,15 +53,7 @@ class WSGIApp:
 			# Check if the attribute is callable and has route attributes
 			if callable(method) and hasattr(method, '_route_method') and hasattr(method, '_route_url'):
 				route = Route(method._route_method, method._route_url, method)
-				#Goes through the list of routes and sees if there is already a route that has the same url
-				appended = False
-				for idx, r in enumerate(self.routes):
-					if r.url == route.url:
-						#Makes the route be a list of the old route and the new route
-						self.routes[idx] = [self.routes[idx]] + [route]
-						appended = True
-				if not appended:
-					self.routes.append(route)
+				self.routes.append(route)
 
 	def wsgi_handler(self, environ, start_response):
 		# Create a Request object from WSGI environment
@@ -85,44 +69,23 @@ class WSGIApp:
 			except:
 				response = Response("<h1>404 Not Found</h1>", status=404, content_type='text/html')
 				return response(environ, start_response)
-		try:
-			route = dict(self.mapper.match(path))
-		except:
-			response = Response('<h1>404 Not Found</h1>', status=404, content_type='text/html')
-			return response(environ, start_response)
 		
-		controller = route.get("controller")
-		if controller == None:
-			raise Exception("Could not find controller in route")
-		if callable(controller):
-			#This gets the list of routes that matches the url
-			#We use a function because at the moment the Routes package
-			#Auto converts everything that is not a function to a string 
-			controller = controller()
+		result = self.router.match(path, method)
+		if not result.get("controller"):
+			return Response(result.get("error"), status=result.get("status_code"), content_type='text/html')(environ, start_response)
+		controller = result.get("controller")
+		if not callable(controller):
+			raise ValueError(f"Controller '{controller}' is not a function")
+		args = result.get("params")
+		if not isinstance(args, dict):
+			raise ValueError("Params must be a dict")
 
-		if type(controller) == list:
-			for c in controller:
-				if c.method == method:
-					controller = c.handler
-					break
-		else:
-			controller = controller.handler
-
-		if not controller:
-			response = Response('<h1>404 Not Found</h1>', status=404, content_type='text/html')
-			return response(environ, start_response)
-		
-		if type(controller) == list:
-			#If the type is still a list, that means we did not find a method with the method we want
-			rsp = Response("Error: Wrong Method", status=405, content_type='text/html')
-			return rsp(environ, start_response)
-
-		del route["controller"]
-		args = list(route.values())
 		if hasattr(controller, "_auth"):
 			autherization = controller._auth
 			cookie = controller._auth_cookie
 			error = controller._error
+			negative_auth = controller._negative_auth
+
 			if cookie:
 				token = request.cookies.get(cookie)
 				if not token:
@@ -174,7 +137,7 @@ class WSGIApp:
 			if validation_result:
 				return validation_result(environ, start_response)
 
-		return controller(request, *args)(environ, start_response)
+		return controller(request, *args.values())(environ, start_response)
 
 	def __call__(self, environ, start_response):
 		return self.wsgi_handler(environ, start_response)

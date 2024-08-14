@@ -83,12 +83,12 @@ class WSGIApp:
             try:
                 response = send_from_directory("src/static", filename, environ, as_attachment=False)
             except:
-                response = Response("404 Not Found", status=404, content_type='text/html')
+                response = Response("<h1>404 Not Found</h1>", status=404, content_type='text/html')
                 return response(environ, start_response)
         try:
             route = dict(self.mapper.match(path))
         except:
-            response = Response('404 Not Found', status=404, content_type='text/html')
+            response = Response('<h1>404 Not Found</h1>', status=404, content_type='text/html')
             return response(environ, start_response)
         
         controller = route.get("controller")
@@ -109,7 +109,7 @@ class WSGIApp:
             controller = controller.handler
 
         if not controller:
-            response = Response('404 Not Found', status=404, content_type='text/html')
+            response = Response('<h1>404 Not Found</h1>', status=404, content_type='text/html')
             return response(environ, start_response)
         
         if type(controller) == list:

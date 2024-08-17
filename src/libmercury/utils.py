@@ -1,3 +1,4 @@
+import json
 from werkzeug import Response
 
 def get_connection():
@@ -23,3 +24,12 @@ def find_or_404(model, **kwargs):
 def expires_in(seconds: int):
 	import time
 	return int(time.time())+seconds
+
+def object_to_json(model):
+    """Converts a SQLAlchemy model instance to a JSON string."""
+    def model_to_dict(obj):
+        """Converts a SQLAlchemy model instance to a dictionary."""
+        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+
+    model_dict = model_to_dict(model)
+    return json.dumps(model_dict)

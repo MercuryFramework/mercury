@@ -15,11 +15,22 @@ def exists(model, **kwargs):
 		return False
 	return True
 
-def find_or_404(model, **kwargs):
-	result = query(model, **kwargs).first()
-	if result == None:
-		return Response("<h1>404 Not Found</h1>", status=404)
-	return result
+def find_or_404(model, response_format="html", **kwargs):
+    result = query(model, **kwargs).first()
+
+    if result is None:
+        if response_format == "json":
+            error_message = {
+                "error": "404 Not Found",
+                "details": f"{model.__name__} not found with {kwargs}"
+            }
+            response_body = json.dumps(error_message)
+            return Response(response_body, status=404, mimetype='application/json')
+        else:  # Default to HTML
+            error_message = f"<h1>404 Not Found</h1><p>{model.__name__} not found with {kwargs}</p>"
+            return Response(error_message, status=404, mimetype='text/html')
+    
+    return result
 
 def expires_in(seconds: int):
 	import time

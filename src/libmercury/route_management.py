@@ -40,6 +40,27 @@ def GETRoute(url):
 def POSTRoute(url):
 	return route('POST', url)
 
+def DELETERoute(url):
+	return route('DELETE', url)
+
+def PATCHRoute(url):
+	return route('PATCH', url)
+
+def PUTRoute(url):
+	return route('PUT', url)
+
+def OPTIONSRoute(url):
+	return route('OPTIONS', url)
+
+def HEADRoute(url):
+	return route('HEAD', url)
+
+def CONTROLRoute(url):
+    return route('CONTROL', url) 
+
+def TRACERoute(url):
+    return route('TRACE', url)
+
 class Route:
 	def __init__(self, method, url, handler):
 		self.method = method

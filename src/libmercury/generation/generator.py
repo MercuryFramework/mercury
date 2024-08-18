@@ -134,14 +134,22 @@ class {controller_name}Controller:
 		#Check to see if the account exists
 		{model_username_field} = request.form["{model_username_field}"]
 		if not exists(user, {model_username_field}={model_username_field}):
-			#Replace this with wherever the request came from, eg. use the referer header
-			return redirect("{controller_route}?error=No such user exists") 
+			#In production, just redirect to where the request will come from, do not rely on the referer header.
+			referer = request.headers.get("Referer")
+			if referer:
+				return redirect(f"{{referer}}?error=Account doesn't exist")
+			else:
+				return redirect("/login?error=Account doesn't exist") 
 
 		#Check to see if the password is correct
 		{model_password_field} = request.form["{model_password_field}"]
 		if {password_checker}:
-			#Replace this with wherever the request came from, eg. use the referer header
-			return redirect("{controller_route}?error=Wrong password")
+			#In production, just redirect to where the request will come from, do not rely on the referer header.
+			referer = request.headers.get("Referer")
+			if referer:
+				return redirect(f"{{referer}}?error=Wrong password")
+			else:
+				return redirect("/login?error=Wrong password")
 
 		response = redirect("{controller_success_redirect}")
 		response.set_cookie("token", {jwt_name}Jwt._makeJwt({{"username": username, "exp": expires_in(2592000)}}))
@@ -174,6 +182,7 @@ def generate_register(cli):
 	if isHashed.lower().strip() == "y":
 		set_password_field = input("What is the name of the model's password setter field: ")
 		set_passsword = f"new_user.{set_password_field}({password_field})"
+	salt_field = input("What is the name of the model's salt field: ")
 	signed_in_redirect = input("Where should the controller redirect if the user is already signed in: ")
 	primary_key = input("What is the name of the model's primary key: ")
 
@@ -188,7 +197,7 @@ def generate_register(cli):
 
 	rules_python = []
 	for key, value in table.items():
-		if key == "id":
+		if key == salt_field or key == primary_key:
 			continue
 		translated = ""
 		if value.length:
@@ -224,7 +233,7 @@ class {validator_name}Validator:
 	user = f"new_user = {model_name}("
 
 	for col in list(table.keys()):
-		if col == primary_key:
+		if col == primary_key or col == salt_field:
 			continue
 		lines.append(f'{col} = request.form["{col}"]')
 		user = f"{user}{col}={col}," 
@@ -249,7 +258,12 @@ class RegisterController:
 		#Check to see if an account exists
 		{username_field} = request.form["username"]
 		if exists(user, {username_field}={username_field}):
-			#Replace this with wherever the request came from, eg. use the referer header
+			#In production, just redirect to where the request will come from, do not rely on the referer header.
+			referer = request.headers.get("referer")
+			if referer:
+				return redirect(f"{{referer}}?error=Account already exists")
+			else:
+				return redirect("/register?error=Account already exists")
 			return redirect("{controller_route}?error=Account already exists") 
 
 		#Create the account

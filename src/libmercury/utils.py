@@ -46,7 +46,7 @@ def object_to_json(model):
 	model_dict = model_to_dict(model)
 	return json.dumps(model_dict)
 
-def json_to_object(json_str, model_class):
+def json_to_object(json_dict, model_class):
 	"""Converts a JSON string to a SQLAlchemy model instance, excluding the primary key.
 
 	Args:
@@ -58,8 +58,7 @@ def json_to_object(json_str, model_class):
 	"""
 	try:
 		# Parse the JSON string
-		data = json.loads(json_str)
-		
+		data = json_dict
 		# Get the primary key column name
 		primary_key_column = model_class.__table__.primary_key.columns.keys()[0]
 		

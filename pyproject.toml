@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "libmercury"
-version = "0.80"
+version = "0.81"
 dependencies = [
   "routes",
   "werkzeug",

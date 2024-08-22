@@ -234,6 +234,7 @@ class {name}Jwt:
 						migrations.append(os.path.join("src/cargo/migrations", file))
 				except ValueError:
 					pass
+		migrations.sort(key=lambda x: int(os.path.basename(x)[:-3]))
 
 		# Extract the database URL from the `Connection` object
 		module = self._import_module("src/cargo/connection.py")

@@ -135,6 +135,7 @@ class MigrationWrapper:
 		:param table_name: Name of the table to create
 		:param columns: List of Column definitions
 		"""
+		self.metadata.reflect(bind=self.engine)
 		try:
 			table = Table(table_name, self.metadata, *columns)
 			table.create(self.engine)

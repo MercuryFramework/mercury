@@ -140,6 +140,10 @@ class {name}Controller:
 		with open("map.json", "r") as f:
 			map_json = loads(f.read())
 			map_json["controllers"].append(f"src/controllers/{name}Controller.py")
+			map_json["controllers"] = list(set(map_json["controllers"]))
+			map_json["validators"] = list(set(map_json["validators"]))
+			map_json["models"] = list(set(map_json["models"]))
+			map_json["security"] = list(set(map_json["security"]))
 		with open("map.json", "w") as f:
 			f.write(dumps(map_json))
 
@@ -156,6 +160,10 @@ class {name}Validator:
 		with open("map.json", "r") as f:
 			map_json = loads(f.read())
 			map_json["validators"].append(f"src/validators/{name}Validator.py")
+			map_json["controllers"] = list(set(map_json["controllers"]))
+			map_json["validators"] = list(set(map_json["validators"]))
+			map_json["models"] = list(set(map_json["models"]))
+			map_json["security"] = list(set(map_json["security"]))
 		with open("map.json", "w") as f:
 			f.write(dumps(map_json))
 
@@ -166,6 +174,11 @@ class {name}Validator:
 		with open("map.json", "r") as f:
 			map_json = loads(f.read())
 			model_paths = map_json["models"]
+			map_json["controllers"] = list(set(map_json["controllers"]))
+			map_json["validators"] = list(set(map_json["validators"]))
+			map_json["models"] = list(set(map_json["models"]))
+			map_json["security"] = list(set(map_json["security"]))
+
 		#Run migrator
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Starting Migrator")
 		migrator = MigrationSystem("src/cargo/connection.py", model_paths)
@@ -181,6 +194,11 @@ class {name}(Base):
 		with open("map.json", "r") as f:
 			map_json = loads(f.read())
 			map_json["models"].append(f"src/cargo/{name}Model.py")
+			map_json["controllers"] = list(set(map_json["controllers"]))
+			map_json["validators"] = list(set(map_json["validators"]))
+			map_json["models"] = list(set(map_json["models"]))
+			map_json["security"] = list(set(map_json["security"]))
+
 		with open("map.json", "w") as f:
 			f.write(dumps(map_json))
 		print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/cargo/{name}Model.py")
@@ -211,6 +229,11 @@ class {name}Jwt:
 		with open("map.json", "r") as f:
 			map_json = loads(f.read())
 			map_json["security"].append(f"src/secuirty/{name}Jwt.py")
+			map_json["controllers"] = list(set(map_json["controllers"]))
+			map_json["validators"] = list(set(map_json["validators"]))
+			map_json["models"] = list(set(map_json["models"]))
+			map_json["security"] = list(set(map_json["security"]))
+
 		with open("map.json", "w") as f:
 			f.write(dumps(map_json))
 		
@@ -261,6 +284,10 @@ class {name}Jwt:
 		#Update map
 		map["db_version"] = latest_migration_id 
 		with open("map.json", "w") as f:
+			map["controllers"] = list(set(map["controllers"]))
+			map["validators"] = list(set(map["validators"]))
+			map["models"] = list(set(map["models"]))
+			map["security"] = list(set(map["security"]))
 			f.write(dumps(map))
 
 	def run(self):

@@ -278,7 +278,7 @@ class {name}Jwt:
 				module = self._import_module(migration).upgrade(db_url)
 				print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} '{migration}' passed with no errors")
 			except Exception as e:
-				print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL}Migration: '{migration}' failed with error:")
+				print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Migration: '{migration}' failed with error:")
 				print(e)
 
 		#Update map

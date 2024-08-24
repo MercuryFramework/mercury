@@ -282,7 +282,8 @@ class {name}Jwt:
 				print(e)
 
 		#Update map
-		map["db_version"] = latest_migration_id 
+		if not latest_migration_id == 0:
+			map["db_version"] = latest_migration_id 
 		with open("map.json", "w") as f:
 			map["controllers"] = list(set(map["controllers"]))
 			map["validators"] = list(set(map["validators"]))

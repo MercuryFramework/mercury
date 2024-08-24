@@ -263,8 +263,7 @@ class RegisterController:
 			if referer:
 				return redirect(f"{{referer}}?error=Account already exists")
 			else:
-				return redirect("/register?error=Account already exists")
-			return redirect("{controller_route}?error=Account already exists") 
+				return redirect("{controller_route}?error=Account already exists") 
 
 		#Create the account
 		{lines}

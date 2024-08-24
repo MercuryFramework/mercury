@@ -304,7 +304,7 @@ def generate_crud(cli):
 		if key == "id":
 			continue
 		translated = ""
-		if value.length:
+		if hasattr(value, "length") and value.length:
 			value.length = f"max={value.length}"
 		else:
 			value.length = ""
@@ -317,7 +317,7 @@ def generate_crud(cli):
 		elif type(value) == Float:
 			translated = f"Validator.Float({value.length})"
 		else:
-			print(f"[WARNING] Unhandled type for {key}, please add this to the validator and controller manually")
+			print(f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL} Unhandled type for {key}, please add this to the validator and controller manually")
 		rules_python.append(f"{key} = {translated}")
 
 	rules_python = "\n\t".join(rules_python)

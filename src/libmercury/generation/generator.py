@@ -200,7 +200,7 @@ def generate_register(cli):
 		if key == salt_field or key == primary_key:
 			continue
 		translated = ""
-		if value.length:
+		if hasattr(value, "length") and value.length:
 			value.length = f"max={value.length}"
 		else:
 			value.length = ""

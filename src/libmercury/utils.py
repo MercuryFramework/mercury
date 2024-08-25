@@ -37,14 +37,21 @@ def expires_in(seconds: int):
 	import time
 	return int(time.time())+seconds
 
-def object_to_json(model):
-	"""Converts a SQLAlchemy model instance to a JSON string."""
-	def model_to_dict(obj):
-		"""Converts a SQLAlchemy model instance to a dictionary."""
-		return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+def object_to_json(model, exclude=None):
+    """Converts a SQLAlchemy model instance to a JSON string, with optional exclusion of specified fields."""
+    if exclude is None:
+        exclude = []
 
-	model_dict = model_to_dict(model)
-	return json.dumps(model_dict)
+    def model_to_dict(obj):
+        """Converts a SQLAlchemy model instance to a dictionary, excluding specified fields."""
+        return {
+            c.name: getattr(obj, c.name)
+            for c in obj.__table__.columns
+            if c.name not in exclude
+        }
+
+    model_dict = model_to_dict(model)
+    return json.dumps(model_dict)
 
 def json_to_object(json_dict, model_class):
 	"""Converts a JSON string to a SQLAlchemy model instance, excluding the primary key.

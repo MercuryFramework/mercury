@@ -117,11 +117,7 @@ def downgrade(url):
 				if col_name not in db_columns:
 					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' is missing in the database.")
 				elif str(col_type) != str(db_columns[col_name]):
-					if not db_columns[col_name] == NullType:
-						#This has been done as SQLAlchemy has a "feature"(more like a bug) that makes anything that is
-						#potentially nullable to be nullable. This is not an issue in the context of libmercury, but
-						#just needs to be ignored untill sqlalchemy fixes this.
-						discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' has type mismatch.")
+					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' has type mismatch.")
 
 			for col_name in db_columns:
 				if col_name not in orm_columns:

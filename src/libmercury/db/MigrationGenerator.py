@@ -189,7 +189,6 @@ class MigrationWrapper:
             
 				conn.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_sql}')
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{column.name}' added to table '{table_name}'.")
-			print(column_sql)
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error adding column: {e}")
 

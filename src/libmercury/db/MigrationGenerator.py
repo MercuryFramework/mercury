@@ -117,6 +117,9 @@ def downgrade(url):
 				if col_name not in db_columns:
 					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' is missing in the database.")
 				elif str(col_type) != str(db_columns[col_name]):
+					print(str(col_type))
+					print(db_columns)
+					print(col_name)
 					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' has type mismatch.")
 
 			for col_name in db_columns:
@@ -161,14 +164,15 @@ class MigrationWrapper:
 	def add_column(self, table_name, column):
 		"""
 		Add a new column to an existing table.
-		
+    
 		:param table_name: Name of the table
 		:param column: Column definition
 		"""
 		try:
 			table = Table(table_name, self.metadata, autoload_with=self.engine)
 			with self.engine.connect() as conn:
-				column_sql = column.compile(dialect=self.engine.dialect)
+				# Manually construct the column definition with type
+				column_sql = f"{column.name} {column.type.compile(self.engine.dialect)}"
 				conn.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_sql}')
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{column.name}' added to table '{table_name}'.")
 		except SQLAlchemyError as e:

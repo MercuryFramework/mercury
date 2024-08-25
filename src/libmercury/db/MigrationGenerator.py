@@ -171,10 +171,25 @@ class MigrationWrapper:
 		try:
 			table = Table(table_name, self.metadata, autoload_with=self.engine)
 			with self.engine.connect() as conn:
-				# Manually construct the column definition with type
+				# Manually construct the column definition with type, nullable, and default value
 				column_sql = f"{column.name} {column.type.compile(self.engine.dialect)}"
+            
+				if not column.nullable:
+					column_sql += " NOT NULL"
+				else:
+					column_sql += " NULL"
+            
+				if column.default is not None:
+					# Extract the default value, accounting for SQL expressions or callable defaults
+					if callable(column.default.arg):
+						default_value = column.default.arg()
+					else:
+						default_value = column.default.arg
+					column_sql += f" DEFAULT {default_value}"
+            
 				conn.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_sql}')
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{column.name}' added to table '{table_name}'.")
+			print(column_sql)
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error adding column: {e}")
 

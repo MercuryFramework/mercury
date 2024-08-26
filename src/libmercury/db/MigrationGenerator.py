@@ -5,14 +5,12 @@ import importlib.util
 import os
 import inspect
 
-from sqlalchemy.sql.sqltypes import NullType
-
 class MigrationSystem:
-	def __init__(self, db_connection_path, model_paths):
+	def __init__(self, db_connection_path, model_paths) -> None:
 		self.db_connection_path = db_connection_path
 		self.model_paths = model_paths
 
-	def _extract_db_url_from_connection(self, file_path):
+	def _extract_db_url_from_connection(self, file_path) -> None:
 		# Load the module from the file path
 		module_name = os.path.splitext(os.path.basename(file_path))[0]
 		spec = importlib.util.spec_from_file_location(module_name, file_path)
@@ -32,7 +30,7 @@ class MigrationSystem:
 		else:
 			raise AttributeError("The module does not have a 'Connection' object.")
 
-	def _generate_file(self):
+	def _generate_file(self) -> None:
 		python_files = []
 		for file in os.listdir("src/cargo/migrations"):
 			if file.endswith('.py') and os.path.isfile(os.path.join("src/cargo/migrations", file)):
@@ -57,7 +55,7 @@ def downgrade(url):
 	wrapper = MigrationWrapper(url)""")
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Generated file: src/cargo/migrations/{name}.py")
 
-	def _create_migration(self):
+	def _create_migration(self) -> None:
 		# Step 1: Load ORM models
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Loading ORM models")
 		orm_models = self.load_orm_models(self.model_paths)
@@ -79,7 +77,7 @@ def downgrade(url):
 		else:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} ORM models perfectly match the database schema, no migrations are required")
 
-	def load_orm_models(self, model_paths):
+	def load_orm_models(self, model_paths) -> list:
 		models = []
 		for path in model_paths:
 			module_name = os.path.splitext(os.path.basename(path))[0]
@@ -91,13 +89,13 @@ def downgrade(url):
 					models.append(obj)
 		return models
 
-	def get_database_schema(self, engine_url):
+	def get_database_schema(self, engine_url) -> MetaData:
 		engine = create_engine(engine_url)
 		metadata = MetaData()
 		metadata.reflect(bind=engine)
 		return metadata
 
-	def compare_schemas(self, orm_models, db_metadata):
+	def compare_schemas(self, orm_models, db_metadata) -> list:
 		discrepancies = []
 		orm_tables = {}
 		for model in orm_models:
@@ -129,11 +127,11 @@ def downgrade(url):
 		return discrepancies
 
 class MigrationWrapper:
-	def __init__(self, connection_string):
+	def __init__(self, connection_string) -> None:
 		self.engine = create_engine(connection_string)
 		self.metadata = MetaData(bind=self.engine)
 
-	def create_table(self, table_name, columns):
+	def create_table(self, table_name, columns) -> None:
 		"""
 		Create a new table with specified columns.
 		
@@ -148,7 +146,7 @@ class MigrationWrapper:
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error creating table: {e}")
 
-	def delete_table(self, table_name):
+	def delete_table(self, table_name) -> None:
 		"""
 		Delete an existing table.
 		
@@ -161,7 +159,7 @@ class MigrationWrapper:
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error deleting table: {e}")
 
-	def add_column(self, table_name, column):
+	def add_column(self, table_name, column) -> None:
 		"""
 		Add a new column to an existing table.
     
@@ -192,7 +190,7 @@ class MigrationWrapper:
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error adding column: {e}")
 
-	def drop_column(self, table_name, column_name):
+	def drop_column(self, table_name, column_name) -> None:
 		"""
 		Drop an existing column from a table.
 		
@@ -207,7 +205,7 @@ class MigrationWrapper:
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error dropping column: {e}")
 
-	def modify_column(self, table_name, old_column_name, new_column):
+	def modify_column(self, table_name, old_column_name, new_column) -> None:
 		"""
 		Modify an existing column in a table.
 		

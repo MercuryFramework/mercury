@@ -34,9 +34,9 @@ class CLI:
 			self.unknown_command()
 
 	def init(self):
-		print(f"Mercury {version} project initializer")
-		directory = input("Name of directory to use: ")
-		interpreter = input("Please provide your python interpreter(python, python3, etc): ")
+		print(f"{Fore.BLUE}[Initializer]{Style.RESET_ALL} Launching Mercury {version} initializer...")
+		directory = input(f"{Fore.BLUE}[Initializer]{Style.RESET_ALL} Name of directory to use: ")
+		interpreter = input(f"{Fore.BLUE}[Initializer]{Style.RESET_ALL} Please provide your python interpreter(python, python3, etc): ")
 
 		#Create project file structure
 		os.mkdir(directory) 
@@ -55,7 +55,6 @@ class CLI:
 			f.write(dumps({
 				"interpreter": interpreter,
 				"version": version,
-				"db_version": 000000,
 				"controllers": [],
 				"models": [],
 				"validators": [],
@@ -78,22 +77,22 @@ run_simple("localhost", 8000, app)
 					""")
 
 		#Create .mercury files that allow us to run commands from anywhere in the file structure
-		with open(f"{directory}/src/.mercury", "w") as f:
-			f.write(f"{os.getcwd()}/{directory}")
-		with open(f"{directory}/src/controllers/.mercury", "w") as f:
-			f.write(f"{os.getcwd()}/{directory}")
-		with open(f"{directory}/src/validators/.mercury", "w") as f:
-			f.write(f"{os.getcwd()}/{directory}")
-		with open(f"{directory}/src/security/.mercury", "w") as f:
-			f.write(f"{os.getcwd()}/{directory}")
-		with open(f"{directory}/src/cargo/.mercury", "w") as f:
-			f.write(f"{os.getcwd()}/{directory}")
-		with open(f"{directory}/src/cargo/migrations/.mercury", "w") as f:
-			f.write(f"{os.getcwd()}/{directory}")
-		with open(f"{directory}/src/templates/.mercury", "w") as f:
-			f.write(f"{os.getcwd()}/{directory}")
-		with open(f"{directory}/src/static/.mercury", "w") as f:
-			f.write(f"{os.getcwd()}/{directory}")
+		directories = [
+			"src",
+			"src/controllers",
+			"src/validators",
+			"src/security",
+			"src/cargo",
+			"src/cargo/migrations",
+			"src/templates",
+			"src/static"
+		]
+		for i in directories:
+			with open(f"{directory}/{i}/.mercury", "w") as f:
+				f.write(f"{os.getcwd()}/{directory}")
+		
+		create_mercury_table(f"sqlite:///{directory}/src/cargo/dev.db")
+		print(f"{Fore.BLUE}[Initializer]{Style.RESET_ALL} Initialized project in directory: '{directory}'")
 
 	def _import_module(self, file_path):
 		module_name = os.path.splitext(os.path.basename(file_path))[0]

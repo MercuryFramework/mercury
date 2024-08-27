@@ -21,6 +21,7 @@ def useValidator(validator, **kwargs):
 			return func(*args, **kwargs)
 		wrapper._validator = validator
 		wrapper._error = kwargs.get("error")
+		wrapper._mimetypes = kwargs.get("mimetypes")
 		return wrapper
 	return decorator
 

@@ -114,6 +114,13 @@ class WSGIApp:
 		if hasattr(controller, "_validator"):
 			validator = controller._validator
 			error = controller._error
+			mimetypes = controller._mimetypes
+			if not request.mimetype in mimetypes:
+				if error:
+					return error()(environ, start_response)
+				rsp = Response("Error: Requested content type is not supported")
+				rsp.status_code = 400
+				return rsp(environ, start_response)
 			# Go through the request data, only json and html are supported
 			try:
 				data = request.json

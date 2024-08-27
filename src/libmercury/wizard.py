@@ -1,5 +1,6 @@
 from json import loads, dumps
 from colorama import Fore, Style
+from libmercury.db.setup_db import * 
 from libmercury.security import keygen 
 from libmercury.db import MigrationSystem
 from libmercury.generation import generate
@@ -240,25 +241,6 @@ class {name}Jwt:
 		print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/cargo/{name}Jwt.py")
 
 	def migrate(self):
-		#Get current version
-		with open("map.json", "r") as f:
-			map = loads(f.read())
-		db_version = map["db_version"]
-		migrations = []
-		latest_migration_id = 0
-
-		#Get all non-runned migrations
-		for file in os.listdir("src/cargo/migrations"):
-			if file.endswith('.py') and os.path.isfile(os.path.join("src/cargo/migrations", file)):
-				try:
-					if int(file[:-3]) > db_version:
-						if int(file[:-3]) > latest_migration_id:
-							latest_migration_id = int(file[:-3])
-						migrations.append(os.path.join("src/cargo/migrations", file))
-				except ValueError:
-					pass
-		migrations.sort(key=lambda x: int(os.path.basename(x)[:-3]))
-
 		# Extract the database URL from the `Connection` object
 		module = self._import_module("src/cargo/connection.py")
 		if hasattr(module, 'Connection'):
@@ -271,6 +253,25 @@ class {name}Jwt:
 				raise AttributeError("The 'Connection' object does not have an 'engine' or 'url' attribute.")
 		else:
 			raise AttributeError("The module does not have a 'Connection' object.")
+
+		if find_mercury_table(db_url) is None:
+			create_mercury_table(db_url)
+			create_version(db_url, 0)	
+		db_version = get_version(db_url)
+		latest_migration_id = 0
+		migrations = []
+
+		#Get all non-runned migrations
+		for file in os.listdir("src/cargo/migrations"):
+			if file.endswith('.py') and os.path.isfile(os.path.join("src/cargo/migrations", file)):
+				try:
+					if int(file[:-3]) > db_version:
+						if int(file[:-3]) > latest_migration_id:
+							latest_migration_id = int(file[:-3])
+						migrations.append(os.path.join("src/cargo/migrations", file))
+				except ValueError:
+					pass
+		migrations.sort(key=lambda x: int(os.path.basename(x)[:-3]))
 		
 		for migration in migrations:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Running migration {migration}")
@@ -282,8 +283,10 @@ class {name}Jwt:
 				print(e)
 
 		#Update map
+		map = loads(open("map.json", "r").read())
 		if not latest_migration_id == 0:
-			map["db_version"] = latest_migration_id 
+			update_version(db_url, latest_migration_id)
+
 		with open("map.json", "w") as f:
 			map["controllers"] = list(set(map["controllers"]))
 			map["validators"] = list(set(map["validators"]))
@@ -309,15 +312,15 @@ class {name}Jwt:
 		print(f"{Fore.RED}Error:{Style.RESET_ALL} Unknown Command")
 
 	def version_display(self):
-		print(r""" /$$      /$$                                                            
-| $$$    /$$$                                                            
-| $$$$  /$$$$  /$$$$$$   /$$$$$$   /$$$$$$$ /$$   /$$  /$$$$$$  /$$   /$$
+		print(r""" /$$		/$$															   
+| $$$	 /$$$															 
+| $$$$	/$$$$  /$$$$$$	 /$$$$$$   /$$$$$$$ /$$   /$$  /$$$$$$	/$$   /$$
 | $$ $$/$$ $$ /$$__  $$ /$$__  $$ /$$_____/| $$  | $$ /$$__  $$| $$  | $$
-| $$  $$$| $$| $$$$$$$$| $$  \__/| $$      | $$  | $$| $$  \__/| $$  | $$
-| $$\  $ | $$| $$_____/| $$      | $$      | $$  | $$| $$      | $$  | $$
-| $$ \/  | $$|  $$$$$$$| $$      |  $$$$$$$|  $$$$$$/| $$      |  $$$$$$$
-|__/     |__/ \_______/|__/       \_______/ \______/ |__/       \____  $$
-                                                                /$$  | $$
-                                                               |  $$$$$$/
-                                                                \______/ """)
+| $$  $$$| $$| $$$$$$$$| $$  \__/| $$	   | $$  | $$| $$  \__/| $$  | $$
+| $$\  $ | $$| $$_____/| $$		 | $$	   | $$  | $$| $$	   | $$  | $$
+| $$ \/  | $$|	$$$$$$$| $$		 |	$$$$$$$|  $$$$$$/| $$	   |  $$$$$$$
+|__/	 |__/ \_______/|__/		  \_______/ \______/ |__/		\____  $$
+																/$$  | $$
+															   |  $$$$$$/
+																\______/ """)
 		print(version)

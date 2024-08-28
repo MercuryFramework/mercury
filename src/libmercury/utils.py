@@ -33,25 +33,32 @@ def find_or_404(model, response_format="html", **kwargs):
 	
 	return result
 
+def paginate(model, page=1, per_page=10, **kwargs):
+    """Paginate the results of a query on a SQLAlchemy model, returning a query object."""
+    query_result = query(model, **kwargs)  # Assuming `query` is a function that returns a query object
+    paginated_query = query_result.offset((page - 1) * per_page).limit(per_page)
+    
+    return paginated_query
+
 def expires_in(seconds: int):
 	import time
 	return int(time.time())+seconds
 
 def object_to_json(model, exclude=None):
-    """Converts a SQLAlchemy model instance to a JSON string, with optional exclusion of specified fields."""
-    if exclude is None:
-        exclude = []
+	"""Converts a SQLAlchemy model instance to a JSON string, with optional exclusion of specified fields."""
+	if exclude is None:
+		exclude = []
 
-    def model_to_dict(obj):
-        """Converts a SQLAlchemy model instance to a dictionary, excluding specified fields."""
-        return {
-            c.name: getattr(obj, c.name)
-            for c in obj.__table__.columns
-            if c.name not in exclude
-        }
+	def model_to_dict(obj):
+		"""Converts a SQLAlchemy model instance to a dictionary, excluding specified fields."""
+		return {
+			c.name: getattr(obj, c.name)
+			for c in obj.__table__.columns
+			if c.name not in exclude
+		}
 
-    model_dict = model_to_dict(model)
-    return json.dumps(model_dict)
+	model_dict = model_to_dict(model)
+	return json.dumps(model_dict)
 
 def json_to_object(json_dict, model_class):
 	"""Converts a JSON string to a SQLAlchemy model instance, excluding the primary key.

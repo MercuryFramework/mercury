@@ -1,16 +1,16 @@
 from colorama import Fore, Style
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import Column, create_engine, MetaData, Table
 from sqlalchemy.exc import SQLAlchemyError
 import importlib.util
 import os
 import inspect
 
 class MigrationSystem:
-	def __init__(self, db_connection_path, model_paths) -> None:
+	def __init__(self, db_connection_path: str, model_paths: list) -> None:
 		self.db_connection_path = db_connection_path
 		self.model_paths = model_paths
 
-	def _extract_db_url_from_connection(self, file_path) -> None:
+	def _extract_db_url_from_connection(self, file_path: str) -> None:
 		# Load the module from the file path
 		module_name = os.path.splitext(os.path.basename(file_path))[0]
 		spec = importlib.util.spec_from_file_location(module_name, file_path)
@@ -77,7 +77,7 @@ def downgrade(url):
 		else:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} ORM models perfectly match the database schema, no migrations are required")
 
-	def load_orm_models(self, model_paths) -> list:
+	def load_orm_models(self, model_paths: list) -> list:
 		models = []
 		for path in model_paths:
 			module_name = os.path.splitext(os.path.basename(path))[0]
@@ -89,13 +89,13 @@ def downgrade(url):
 					models.append(obj)
 		return models
 
-	def get_database_schema(self, engine_url) -> MetaData:
+	def get_database_schema(self, engine_url: str) -> MetaData:
 		engine = create_engine(engine_url)
 		metadata = MetaData()
 		metadata.reflect(bind=engine)
 		return metadata
 
-	def compare_schemas(self, orm_models, db_metadata) -> list:
+	def compare_schemas(self, orm_models: list, db_metadata: MetaData) -> list:
 		discrepancies = []
 		orm_tables = {}
 		for model in orm_models:
@@ -127,11 +127,11 @@ def downgrade(url):
 		return discrepancies
 
 class MigrationWrapper:
-	def __init__(self, connection_string) -> None:
+	def __init__(self, connection_string: str) -> None:
 		self.engine = create_engine(connection_string)
 		self.metadata = MetaData(bind=self.engine)
 
-	def create_table(self, table_name, columns) -> None:
+	def create_table(self, table_name: str, columns: list) -> None:
 		"""
 		Create a new table with specified columns.
 		
@@ -146,7 +146,7 @@ class MigrationWrapper:
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error creating table: {e}")
 
-	def delete_table(self, table_name) -> None:
+	def delete_table(self, table_name: str) -> None:
 		"""
 		Delete an existing table.
 		
@@ -159,7 +159,7 @@ class MigrationWrapper:
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error deleting table: {e}")
 
-	def add_column(self, table_name, column) -> None:
+	def add_column(self, table_name: str, column: Column) -> None:
 		"""
 		Add a new column to an existing table.
     
@@ -190,7 +190,7 @@ class MigrationWrapper:
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error adding column: {e}")
 
-	def drop_column(self, table_name, column_name) -> None:
+	def drop_column(self, table_name: str, column_name: str) -> None:
 		"""
 		Drop an existing column from a table.
 		
@@ -205,7 +205,7 @@ class MigrationWrapper:
 		except SQLAlchemyError as e:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Error dropping column: {e}")
 
-	def modify_column(self, table_name, old_column_name, new_column) -> None:
+	def modify_column(self, table_name: str, old_column_name: str, new_column: Column) -> None:
 		"""
 		Modify an existing column in a table.
 		

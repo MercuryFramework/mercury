@@ -11,6 +11,7 @@ def useAutherization(auth, **kwargs):
 		wrapper._auth_cookie = kwargs.get("cookie")
 		wrapper._error = kwargs.get("error")
 		wrapper._negative_auth = kwargs.get("negative_auth")
+		wrapper._jwt_validator = kwargs.get("validator")
 		return wrapper
 	return decorator
 

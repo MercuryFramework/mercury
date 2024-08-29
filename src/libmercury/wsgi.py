@@ -1,6 +1,7 @@
 from colorama import Fore, Style
 from werkzeug.utils import send_from_directory
-from libmercury.validation import validate
+from .validation import validate
+from .security import JWT
 from .route_management import Route
 from werkzeug import Request, Response
 from marsrouter import Router
@@ -115,7 +116,7 @@ class WSGIApp:
 			validator = controller._validator
 			error = controller._error
 			mimetypes = controller._mimetypes
-			if not request.mimetype in mimetypes:
+			if mimetypes and not request.mimetype in mimetypes:
 				if error:
 					return error()(environ, start_response)
 				rsp = Response("Error: Requested content type is not supported")

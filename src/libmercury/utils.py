@@ -1,5 +1,6 @@
 import json
 from werkzeug import Response
+from werkzeug.utils import redirect
 from sqlalchemy.exc import IntegrityError
 
 def get_connection():
@@ -15,6 +16,17 @@ def exists(model, **kwargs):
 	if result == None:
 		return False
 	return True
+
+def reset_and_redirect(redirect_url, request):
+    """Redirects to the specified URL and resets all cookies."""
+    # Create a redirect response
+    rsp = redirect(redirect_url)
+    
+    # Clear all cookies
+    for cookie in request.cookies:
+        rsp.delete_cookie(cookie)
+    
+    return rsp
 
 def find_or_404(model, response_format="html", **kwargs):
 	result = query(model, **kwargs).first()
@@ -34,11 +46,11 @@ def find_or_404(model, response_format="html", **kwargs):
 	return result
 
 def paginate(model, page=1, per_page=10, **kwargs):
-    """Paginate the results of a query on a SQLAlchemy model, returning a query object."""
-    query_result = query(model, **kwargs)  # Assuming `query` is a function that returns a query object
-    paginated_query = query_result.offset((page - 1) * per_page).limit(per_page)
-    
-    return paginated_query
+	"""Paginate the results of a query on a SQLAlchemy model, returning a query object."""
+	query_result = query(model, **kwargs)  # Assuming `query` is a function that returns a query object
+	paginated_query = query_result.offset((page - 1) * per_page).limit(per_page)
+	
+	return paginated_query
 
 def expires_in(seconds: int):
 	import time

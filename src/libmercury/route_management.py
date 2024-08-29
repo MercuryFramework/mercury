@@ -1,5 +1,6 @@
 from functools import wraps
 from jinja2 import Environment, FileSystemLoader
+from .security import JWT
 from werkzeug import Response
 
 def useAutherization(auth, **kwargs):
@@ -24,6 +25,24 @@ def useValidator(validator, **kwargs):
 		wrapper._error = kwargs.get("error")
 		wrapper._mimetypes = kwargs.get("mimetypes")
 		return wrapper
+	return decorator
+
+def useJWTValidator(validator, **kwargs):
+	def decorator(func):
+		@wraps(func)
+		def wrapped_function(*args, **kwargs):
+			from libmercury.validation import validate
+			jwt = args[0]  # Assuming the JWT is the first argument
+			error = kwargs.get('error')  # Get the error handler or message from kwargs
+			func_result = func(*args, **kwargs)
+			if func_result == False:
+				return False
+			validation_result = validate(validator, error, JWT(jwt).payload)
+			if not validation_result:
+				return True
+			else:
+				return False
+		return wrapped_function
 	return decorator
 
 def route(method, url):
@@ -58,10 +77,10 @@ def HEADRoute(url):
 	return route('HEAD', url)
 
 def CONTROLRoute(url):
-    return route('CONTROL', url) 
+	return route('CONTROL', url) 
 
 def TRACERoute(url):
-    return route('TRACE', url)
+	return route('TRACE', url)
 
 class Route:
 	def __init__(self, method, url, handler):

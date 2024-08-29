@@ -97,6 +97,7 @@ def downgrade(url):
 
 	def compare_schemas(self, orm_models: list, db_metadata: MetaData) -> list:
 		discrepancies = []
+		autogenerate_table = {"new_columns": [], "new_tables": [], "removed_tables": []}
 		orm_tables = {}
 		for model in orm_models:
 			table = model.__table__
@@ -115,9 +116,6 @@ def downgrade(url):
 				if col_name not in db_columns:
 					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' is missing in the database.")
 				elif str(col_type) != str(db_columns[col_name]):
-					print(str(col_type))
-					print(db_columns)
-					print(col_name)
 					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' has type mismatch.")
 
 			for col_name in db_columns:

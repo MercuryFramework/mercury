@@ -46,7 +46,7 @@ class MigrationSystem:
 			f.write(f"""from libmercury.db import MigrationWrapper 
 
 _version = '{name}'
-_prev_version = None
+_prev_version = '{int(name)-1}'
 
 def upgrade(url):
 	wrapper = MigrationWrapper(url)

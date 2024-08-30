@@ -32,7 +32,6 @@ class MigrationSystem:
 
 
 	def _generate_file(self, autogenerate_table) -> None:
-		print(autogenerate_table)
 		python_files = []
 	
 		for file in os.listdir("src/cargo/migrations"):

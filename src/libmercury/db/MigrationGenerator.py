@@ -30,33 +30,84 @@ class MigrationSystem:
 		else:
 			raise AttributeError("The module does not have a 'Connection' object.")
 
-	def _generate_file(self) -> None:
+
+	def _generate_file(self, autogenerate_table) -> None:
+		print(autogenerate_table)
 		python_files = []
+	
 		for file in os.listdir("src/cargo/migrations"):
 			if file.endswith('.py') and os.path.isfile(os.path.join("src/cargo/migrations", file)):
 				try:
 					python_files.append(int(file[:-3]))
 				except ValueError:
 					pass
-		if len(python_files) == 0:
-			name = 1
-		else:
-			name = max(python_files)+1
+	
+		name = max(python_files) + 1 if python_files else 1
+	
+		upgrade_commands = []
+		downgrade_commands = []
+	
+		# Handle new tables
+		for new_table in autogenerate_table.get("new_tables", []):
+			table_name = new_table["name"]
+			columns = ", \n\t\t".join(
+				[
+					f"Column('{col_name}', {col_type}"
+					+ (f", nullable={col_nullable}" if col_nullable is not None else "")
+					+ (f", primary_key={col_primary_key}" if col_primary_key else "")
+					+ ")"
+					for col_name, col_info in new_table["columns"].items()
+					for col_type, col_nullable, col_primary_key in [(col_info["type"], col_info["nullable"], col_info["primary_key"])]
+				]
+			)
+	
+			upgrade_commands.append(f"wrapper.create_table('{table_name}', [\n\t\t{columns}\n\t])")
+			downgrade_commands.append(f"wrapper.delete_table('{table_name}')")
+	
+		# Handle new columns
+		for new_column in autogenerate_table.get("new_columns", []):
+			table_name = new_column["table"]
+			column_name = new_column["name"]
+			column_type = new_column["type"]
+			nullable = new_column["nullable"]
+			primary_key = new_column["primary_key"]
+	
+			col_def = f"Column('{column_name}', {column_type}"
+			if nullable is not None and nullable is not False:
+				col_def += f", nullable={nullable}"
+			if primary_key is True:
+				col_def += f", primary_key={primary_key}"
+			col_def += ")"
+	
+			upgrade_commands.append(f"wrapper.add_column('{table_name}', {col_def})")
+			downgrade_commands.append(f"wrapper.drop_column('{table_name}', '{column_name}')")
+	
+		# Handle removed columns
+		for removed_column in autogenerate_table.get("removed_columns", []):
+			table_name = removed_column["table"]
+			column_name = removed_column["name"]
+	
+			upgrade_commands.append(f"wrapper.drop_column('{table_name}', '{column_name}')")
+			# Add logic to re-add the removed column, if needed, in downgrade
+	
 		with open(f"src/cargo/migrations/{name}.py", "w") as f:
-			f.write(f"""from libmercury.db import MigrationWrapper 
-
-_version = '{name}'
-_prev_version = '{int(name)-1}'
-
-def upgrade(url):
-	wrapper = MigrationWrapper(url)
-
-def downgrade(url):
-	wrapper = MigrationWrapper(url)""")
+			f.write("from libmercury.db import MigrationWrapper, Column, INTEGER, VARCHAR\n\n")
+			f.write(f"_version = '{name}'\n")
+			f.write(f"_prev_version = '{int(name) - 1}'\n\n")
+			f.write("def upgrade(url):\n")
+			f.write("\twrapper = MigrationWrapper(url)\n")
+			for cmd in upgrade_commands:
+				f.write(f"\t{cmd}\n")
+	
+			f.write("\n\ndef downgrade(url):\n")
+			f.write("\twrapper = MigrationWrapper(url)\n")
+			for cmd in downgrade_commands:
+				f.write(f"\t{cmd}\n")
+	
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Generated file: src/cargo/migrations/{name}.py")
-
+		
 	def _create_migration(self) -> None:
-		# Step 1: Load ORM models
+		# Step 0: Load ORM models
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Loading ORM models")
 		orm_models = self.load_orm_models(self.model_paths)
 		
@@ -66,14 +117,16 @@ def downgrade(url):
 		
 		# Step 3: Compare schemas
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Finding discrepancies...")
-		discrepancies = self.compare_schemas(orm_models, db_metadata)
+		migration_response = self.compare_schemas(orm_models, db_metadata)
+		discrepancies = migration_response[0]
+		autogenerate_table = migration_response[1]
 		
 		# Output discrepancies
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Loading discrepancies")
 		if discrepancies:
 			for discrepancy in discrepancies:
 				print(discrepancy)
-			self._generate_file()
+			self._generate_file(autogenerate_table)
 		else:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} ORM models perfectly match the database schema, no migrations are required")
 
@@ -95,34 +148,75 @@ def downgrade(url):
 		metadata.reflect(bind=engine)
 		return metadata
 
-	def compare_schemas(self, orm_models: list, db_metadata: MetaData) -> list:
+	def compare_schemas(self, orm_models: list, db_metadata: MetaData) -> tuple:
 		discrepancies = []
-		autogenerate_table = {"new_columns": [], "new_tables": [], "removed_tables": []}
+		autogenerate_table = {"new_columns": [], "new_tables": [], "removed_columns": []}
 		orm_tables = {}
+	
 		for model in orm_models:
 			table = model.__table__
-			orm_tables[table.name] = {col.name: col.type for col in table.columns}
-
-		db_tables = {table.name: {col.name: col.type for col in table.columns} for table in db_metadata.sorted_tables}
-
+			orm_tables[table.name] = {
+				col.name: {
+					"type": col.type,
+					"nullable": col.nullable,
+					"primary_key": col.primary_key
+				}
+				for col in table.columns
+			}
+	
+		db_tables = {
+			table.name: {
+				col.name: {
+					"type": col.type,
+					"nullable": col.nullable,
+					"primary_key": col.primary_key
+				}
+				for col in table.columns
+			}
+			for table in db_metadata.sorted_tables
+		}
+	
 		for table_name, orm_columns in orm_tables.items():
 			if table_name not in db_tables:
 				discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Table '{table_name}' is missing in the database.")
+				autogenerate_table["new_tables"].append({
+					"name": table_name,
+					"columns": orm_columns
+				})
 				continue
-
+	
 			db_columns = db_tables[table_name]
-
-			for col_name, col_type in orm_columns.items():
+	
+			for col_name, orm_col_data in orm_columns.items():
 				if col_name not in db_columns:
 					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' is missing in the database.")
-				elif str(col_type) != str(db_columns[col_name]):
-					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' has type mismatch.")
-
+					autogenerate_table["new_columns"].append({
+						"name": col_name,
+						"type": orm_col_data["type"],
+						"table": table_name,
+						"nullable": orm_col_data["nullable"],
+						"primary_key": orm_col_data["primary_key"]
+					})
+				else:
+					db_col_data = db_columns[col_name]
+					if str(orm_col_data["type"]) != str(db_col_data["type"]) or orm_col_data["nullable"] != db_col_data["nullable"] or orm_col_data["primary_key"] != db_col_data["primary_key"]:
+						discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' has type or attribute mismatch.")
+						autogenerate_table["removed_columns"].append(col_name)
+						autogenerate_table["new_columns"].append({
+							"name": col_name,
+							"type": orm_col_data["type"],
+							"table": table_name,
+							"nullable": orm_col_data["nullable"],
+							"primary_key": orm_col_data["primary_key"]
+						})
+	
 			for col_name in db_columns:
 				if col_name not in orm_columns:
 					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' is extra in the database.")
+					autogenerate_table["removed_columns"].append(col_name)
+	
+		return discrepancies, autogenerate_table
 
-		return discrepancies
 
 class MigrationWrapper:
 	def __init__(self, connection_string: str) -> None:
@@ -160,7 +254,7 @@ class MigrationWrapper:
 	def add_column(self, table_name: str, column: Column) -> None:
 		"""
 		Add a new column to an existing table.
-    
+	
 		:param table_name: Name of the table
 		:param column: Column definition
 		"""
@@ -169,12 +263,12 @@ class MigrationWrapper:
 			with self.engine.connect() as conn:
 				# Manually construct the column definition with type, nullable, and default value
 				column_sql = f"{column.name} {column.type.compile(self.engine.dialect)}"
-            
+			
 				if not column.nullable:
 					column_sql += " NOT NULL"
 				else:
 					column_sql += " NULL"
-            
+			
 				if column.default is not None:
 					# Extract the default value, accounting for SQL expressions or callable defaults
 					if callable(column.default.arg):
@@ -182,7 +276,7 @@ class MigrationWrapper:
 					else:
 						default_value = column.default.arg
 					column_sql += f" DEFAULT {default_value}"
-            
+			
 				conn.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_sql}')
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{column.name}' added to table '{table_name}'.")
 		except SQLAlchemyError as e:

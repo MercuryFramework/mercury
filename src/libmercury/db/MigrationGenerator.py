@@ -83,7 +83,7 @@ class MigrationSystem:
 			table_name = new_table["name"]
 			columns = []
 	
-			for col_name, col_info in new_table["columnse"].items():
+			for col_name, col_info in new_table["columns"].items():
 				col_type = col_info["type"]
 				col_nullable = col_info["nullable"]
 				col_primary_key = col_info["primary_key"]
@@ -103,7 +103,15 @@ class MigrationSystem:
 			upgrade_commands.append(f"wrapper.create_table('{table_name}', [\n\t\t{columns_str}\n\t])")
 			downgrade_commands.append(f"wrapper.delete_table('{table_name}')")
 	
-		# Handle new columns
+		# Handle removed columns (drop columns first)
+		for removed_column in autogenerate_table.get("removed_columns", []):
+			table_name = removed_column["table"]
+			column_name = removed_column["name"]
+	
+			upgrade_commands.append(f"wrapper.drop_column('{table_name}', '{column_name}')")
+			downgrade_commands.append(f"wrapper.add_column('{table_name}', {column_name})")  # Assuming re-adding logic
+	
+		# Handle new columns (add columns after dropping)
 		for new_column in autogenerate_table.get("new_columns", []):
 			table_name = new_column["table"]
 			column_name = new_column["name"]
@@ -122,14 +130,6 @@ class MigrationSystem:
 	
 			upgrade_commands.append(f"wrapper.add_column('{table_name}', {col_def})")
 			downgrade_commands.append(f"wrapper.drop_column('{table_name}', '{column_name}')")
-	
-		# Handle removed columns
-		for removed_column in autogenerate_table.get("removed_columns", []):
-			table_name = removed_column["table"]
-			column_name = removed_column["name"]
-	
-			upgrade_commands.append(f"wrapper.drop_column('{table_name}', '{column_name}')")
-			# Add logic to re-add the removed column, if needed, in downgrade
 	
 		# Write to file
 		with open(f"src/cargo/migrations/{name}.py", "w") as f:

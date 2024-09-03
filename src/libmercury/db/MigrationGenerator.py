@@ -69,8 +69,7 @@ class MigrationSystem:
 				column_def = f"Column('{col_name}', {col_type}"
 				if col_primary_key:
 					column_def += f", primary_key={col_primary_key}"
-				if col_nullable is not None and col_nullable is not False:
-					column_def += f", nullable={col_nullable}"
+				column_def += f", nullable={col_nullable}"
 				column_def += ")"
 	
 				columns.append(column_def)
@@ -84,7 +83,7 @@ class MigrationSystem:
 			table_name = new_table["name"]
 			columns = []
 	
-			for col_name, col_info in new_table["columns"].items():
+			for col_name, col_info in new_table["columnse"].items():
 				col_type = col_info["type"]
 				col_nullable = col_info["nullable"]
 				col_primary_key = col_info["primary_key"]
@@ -95,8 +94,7 @@ class MigrationSystem:
 					column_def += f", primary_key={col_primary_key}"
 				if col_foreign_keys:
 					column_def += f", {col_foreign_keys[0]}"
-				if col_nullable is not None and col_nullable is not False:
-					column_def += f", nullable={col_nullable}"
+				column_def += f", nullable={col_nullable}"
 				column_def += ")"
 	
 				columns.append(column_def)
@@ -119,8 +117,7 @@ class MigrationSystem:
 				col_def += f", primary_key={primary_key}"
 			if foreign_keys:
 				col_def += f", ForeignKey('{foreign_keys[0]}')"
-			if nullable is not None and nullable is not False:
-				col_def += f", nullable={nullable}"
+			col_def += f", nullable={nullable}"
 			col_def += ")"
 	
 			upgrade_commands.append(f"wrapper.add_column('{table_name}', {col_def})")
@@ -150,7 +147,7 @@ class MigrationSystem:
 				f.write(f"\t{cmd}\n")
 	
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Generated file: src/cargo/migrations/{name}.py")
-	
+
 	def _create_migration(self) -> None:
 		# Step 0: Load ORM models
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Loading ORM models")

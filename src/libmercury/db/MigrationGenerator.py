@@ -46,21 +46,63 @@ class MigrationSystem:
 		upgrade_commands = []
 		downgrade_commands = []
 	
-		# Handle new tables
-		for new_table in autogenerate_table.get("new_tables", []):
-			table_name = new_table["name"]
-			columns = ", \n\t\t".join(
-				[
-					f"Column('{col_name}', {col_type}"
-					+ (f", nullable={col_nullable}" if col_nullable is not None else "")
-					+ (f", primary_key={col_primary_key}" if col_primary_key else "")
-					+ ")"
-					for col_name, col_info in new_table["columns"].items()
-					for col_type, col_nullable, col_primary_key in [(col_info["type"], col_info["nullable"], col_info["primary_key"])]
-				]
-			)
+		# Separate tables with and without foreign key dependencies
+		fk_tables = []
+		no_fk_tables = []
 	
-			upgrade_commands.append(f"wrapper.create_table('{table_name}', [\n\t\t{columns}\n\t])")
+		for new_table in autogenerate_table.get("new_tables", []):
+			if any(col_info.get("foreign_keys") for col_info in new_table["columns"].values()):
+				fk_tables.append(new_table)
+			else:
+				no_fk_tables.append(new_table)
+	
+		# First stage: Handle tables without foreign keys
+		for new_table in no_fk_tables:
+			table_name = new_table["name"]
+			columns = []
+	
+			for col_name, col_info in new_table["columns"].items():
+				col_type = col_info["type"]
+				col_nullable = col_info["nullable"]
+				col_primary_key = col_info["primary_key"]
+	
+				column_def = f"Column('{col_name}', {col_type}"
+				if col_primary_key:
+					column_def += f", primary_key={col_primary_key}"
+				if col_nullable is not None and col_nullable is not False:
+					column_def += f", nullable={col_nullable}"
+				column_def += ")"
+	
+				columns.append(column_def)
+	
+			columns_str = ", \n\t\t".join(columns)
+			upgrade_commands.append(f"wrapper.create_table('{table_name}', [\n\t\t{columns_str}\n\t])")
+			downgrade_commands.append(f"wrapper.delete_table('{table_name}')")
+	
+		# Second stage: Handle tables with foreign keys
+		for new_table in fk_tables:
+			table_name = new_table["name"]
+			columns = []
+	
+			for col_name, col_info in new_table["columns"].items():
+				col_type = col_info["type"]
+				col_nullable = col_info["nullable"]
+				col_primary_key = col_info["primary_key"]
+				col_foreign_keys = col_info.get("foreign_keys")
+	
+				column_def = f"Column('{col_name}', {col_type}"
+				if col_primary_key:
+					column_def += f", primary_key={col_primary_key}"
+				if col_foreign_keys:
+					column_def += f", {col_foreign_keys[0]}"
+				if col_nullable is not None and col_nullable is not False:
+					column_def += f", nullable={col_nullable}"
+				column_def += ")"
+	
+				columns.append(column_def)
+	
+			columns_str = ", \n\t\t".join(columns)
+			upgrade_commands.append(f"wrapper.create_table('{table_name}', [\n\t\t{columns_str}\n\t])")
 			downgrade_commands.append(f"wrapper.delete_table('{table_name}')")
 	
 		# Handle new columns
@@ -70,12 +112,15 @@ class MigrationSystem:
 			column_type = new_column["type"]
 			nullable = new_column["nullable"]
 			primary_key = new_column["primary_key"]
+			foreign_keys = new_column.get("foreign_keys")
 	
 			col_def = f"Column('{column_name}', {column_type}"
+			if primary_key:
+				col_def += f", primary_key={primary_key}"
+			if foreign_keys:
+				col_def += f", ForeignKey('{foreign_keys[0]}')"
 			if nullable is not None and nullable is not False:
 				col_def += f", nullable={nullable}"
-			if primary_key is True:
-				col_def += f", primary_key={primary_key}"
 			col_def += ")"
 	
 			upgrade_commands.append(f"wrapper.add_column('{table_name}', {col_def})")
@@ -89,8 +134,9 @@ class MigrationSystem:
 			upgrade_commands.append(f"wrapper.drop_column('{table_name}', '{column_name}')")
 			# Add logic to re-add the removed column, if needed, in downgrade
 	
+		# Write to file
 		with open(f"src/cargo/migrations/{name}.py", "w") as f:
-			f.write("from libmercury.db import MigrationWrapper, Column, INTEGER, VARCHAR\n\n")
+			f.write("from libmercury.db import MigrationWrapper, Column, INTEGER, VARCHAR, ForeignKey\n\n")
 			f.write(f"_version = '{name}'\n")
 			f.write(f"_prev_version = '{int(name) - 1}'\n\n")
 			f.write("def upgrade(url):\n")
@@ -104,7 +150,7 @@ class MigrationSystem:
 				f.write(f"\t{cmd}\n")
 	
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Generated file: src/cargo/migrations/{name}.py")
-		
+	
 	def _create_migration(self) -> None:
 		# Step 0: Load ORM models
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Loading ORM models")
@@ -158,7 +204,8 @@ class MigrationSystem:
 				col.name: {
 					"type": col.type,
 					"nullable": col.nullable,
-					"primary_key": col.primary_key
+					"primary_key": col.primary_key,
+					"foreign_keys": list(col.foreign_keys)	# Store foreign key information
 				}
 				for col in table.columns
 			}
@@ -168,7 +215,8 @@ class MigrationSystem:
 				col.name: {
 					"type": col.type,
 					"nullable": col.nullable,
-					"primary_key": col.primary_key
+					"primary_key": col.primary_key,
+					"foreign_keys": list(col.foreign_keys)	# Store foreign key information
 				}
 				for col in table.columns
 			}
@@ -194,28 +242,37 @@ class MigrationSystem:
 						"type": orm_col_data["type"],
 						"table": table_name,
 						"nullable": orm_col_data["nullable"],
-						"primary_key": orm_col_data["primary_key"]
+						"primary_key": orm_col_data["primary_key"],
+						"foreign_keys": [fk.target_fullname for fk in orm_col_data["foreign_keys"]]
 					})
 				else:
 					db_col_data = db_columns[col_name]
-					if str(orm_col_data["type"]) != str(db_col_data["type"]) or orm_col_data["nullable"] != db_col_data["nullable"] or orm_col_data["primary_key"] != db_col_data["primary_key"]:
+					if (str(orm_col_data["type"]) != str(db_col_data["type"]) or
+						orm_col_data["nullable"] != db_col_data["nullable"] or
+						orm_col_data["primary_key"] != db_col_data["primary_key"]):
 						discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' has type or attribute mismatch.")
-						autogenerate_table["removed_columns"].append(col_name)
+						autogenerate_table["removed_columns"].append({
+							"table": table_name,
+							"name": col_name
+						})
 						autogenerate_table["new_columns"].append({
 							"name": col_name,
 							"type": orm_col_data["type"],
 							"table": table_name,
 							"nullable": orm_col_data["nullable"],
-							"primary_key": orm_col_data["primary_key"]
+							"primary_key": orm_col_data["primary_key"],
+							"foreign_keys": [fk.target_fullname for fk in orm_col_data["foreign_keys"]]
 						})
 	
 			for col_name in db_columns:
 				if col_name not in orm_columns:
 					discrepancies.append(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Column '{col_name}' in table '{table_name}' is extra in the database.")
-					autogenerate_table["removed_columns"].append(col_name)
+					autogenerate_table["removed_columns"].append({
+						"table": table_name,
+						"name": col_name
+					})
 	
 		return discrepancies, autogenerate_table
-
 
 class MigrationWrapper:
 	def __init__(self, connection_string: str) -> None:

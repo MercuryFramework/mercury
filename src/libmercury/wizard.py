@@ -182,7 +182,7 @@ class {name}Validator:
 		#Run migrator
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Starting Migrator")
 		migrator = MigrationSystem("src/cargo/connection.py", model_paths)
-		migrator._create_migration()
+		migrator._create_migration(message)
 
 	def _create_model(self, name):
 		with open(f"src/cargo/{name}Model.py", "w") as f:

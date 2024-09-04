@@ -31,7 +31,7 @@ class MigrationSystem:
 			raise AttributeError("The module does not have a 'Connection' object.")
 
 
-	def _generate_file(self, autogenerate_table) -> None:
+	def _generate_file(self, autogenerate_table, message) -> None:
 		python_files = []
 	
 		for file in os.listdir("src/cargo/migrations"):
@@ -136,6 +136,7 @@ class MigrationSystem:
 			f.write("from libmercury.db import MigrationWrapper, Column, INTEGER, VARCHAR, ForeignKey\n\n")
 			f.write(f"_version = '{name}'\n")
 			f.write(f"_prev_version = '{int(name) - 1}'\n\n")
+			f.write(f"_commit_message = '{message}'\n\n")
 			f.write("def upgrade(url):\n")
 			f.write("\twrapper = MigrationWrapper(url)\n")
 			for cmd in upgrade_commands:
@@ -148,7 +149,7 @@ class MigrationSystem:
 	
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Generated file: src/cargo/migrations/{name}.py")
 
-	def _create_migration(self) -> None:
+	def _create_migration(self, message) -> None:
 		# Step 0: Load ORM models
 		print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} Loading ORM models")
 		orm_models = self.load_orm_models(self.model_paths)
@@ -168,7 +169,7 @@ class MigrationSystem:
 		if discrepancies:
 			for discrepancy in discrepancies:
 				print(discrepancy)
-			self._generate_file(autogenerate_table)
+			self._generate_file(autogenerate_table, message)
 		else:
 			print(f"{Fore.GREEN}[Migrator]{Style.RESET_ALL} ORM models perfectly match the database schema, no migrations are required")
 

@@ -73,8 +73,7 @@ Connection = connection("sqlite:///src/cargo/dev.db", echo=False)
 			f.write("""from libmercury.wsgi import WSGIApp
 from werkzeug.serving import run_simple
 app = WSGIApp()
-run_simple("localhost", 8000, app)
-					""")
+run_simple("localhost", 8000, app)""")
 
 		#Create .mercury files that allow us to run commands from anywhere in the file structure
 		directories = [

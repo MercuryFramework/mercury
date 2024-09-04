@@ -102,10 +102,11 @@ run_simple("localhost", 8000, app)
 		return module
 
 	def create(self):
-		if len(self.arguments) < 2:
+		if len(self.arguments) < 3:
 			print(f"{Fore.RED}Error:{Style.RESET_ALL} Command 'create' requires at least 2 parameters")
 			print("Usage:")
 			print("create <thing> <named>")
+			return
 		
 		thing = self.arguments[1]
 		named = self.arguments[2]

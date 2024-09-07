@@ -1,7 +1,6 @@
 from colorama import Fore, Style
 from werkzeug.utils import send_from_directory
 from .validation import validate
-from .security import JWT
 from .route_management import Route
 from werkzeug import Request, Response
 from marsrouter import Router
@@ -86,15 +85,16 @@ class WSGIApp:
 			cookie = controller._auth_cookie
 			error = controller._error
 			negative_auth = controller._negative_auth
+			token = None
 
-			if cookie:
+			if cookie and not negative_auth: #Only raise an error if negative auth is not present 
 				token = request.cookies.get(cookie)
 				if not token:
 					if error:
 						return error()(environ, start_response)
 					rsp = Response(f"Error: No JWT found in the '{cookie}' cookie")
 					return rsp(environ, start_response)
-			else:
+			elif not negative_auth: #Only raise an error if negative auth is not present
 				token = request.headers.get("Authorization")
 				if not token:
 					if error:
@@ -105,11 +105,18 @@ class WSGIApp:
 				if token.startswith("Bearer"):
 					token = token[7:]
 
-			if not autherization._verify(token):
+			if not negative_auth and not autherization._verify(token): #Only raise an error if negative auth is not present
 				if error:
 					return error()(environ, start_response)
 				rsp = Response("Error: Invalid signature in token")
 				rsp.status_code = 403
+				return rsp(environ, start_response)
+			#If you passed all the stages of verification, and you have negative auth, raise an error
+			if negative_auth:
+				if error:
+					return error()(environ, start_response)
+				rsp = Response("Error: The token is valid, this route requires the token to be invalid")
+				rsp.status_code = 400
 				return rsp(environ, start_response)
 
 		if hasattr(controller, "_validator"):

@@ -3,7 +3,7 @@ from jinja2 import Environment, FileSystemLoader
 from .security import JWT
 from werkzeug import Response
 
-def useAutherization(auth, **kwargs):
+def useAuthorization(auth, **kwargs):
 	def decorator(func):
 		@wraps(func)
 		def wrapper(*args, **kwargs):

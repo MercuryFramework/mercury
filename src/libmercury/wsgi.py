@@ -81,7 +81,7 @@ class WSGIApp:
 			raise ValueError("Params must be a dict")
 
 		if hasattr(controller, "_auth"):
-			autherization = controller._auth
+			authorization = controller._auth
 			cookie = controller._auth_cookie
 			error = controller._error
 			negative_auth = controller._negative_auth
@@ -105,7 +105,7 @@ class WSGIApp:
 				if token.startswith("Bearer"):
 					token = token[7:]
 
-			if not negative_auth and not autherization._verify(token): #Only raise an error if negative auth is not present
+			if not negative_auth and not authorization._verify(token): #Only raise an error if negative auth is not present
 				if error:
 					return error()(environ, start_response)
 				rsp = Response("Error: Invalid signature in token")

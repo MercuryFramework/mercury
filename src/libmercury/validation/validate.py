@@ -12,7 +12,7 @@ def validate(validator, error, data):
 	request_fields = list(data.keys())
 
 	for field in class_fields:
-		if field not in request_fields:
+		if field not in request_fields and not class_vars[field].optional:
 			if error:
 				return error()
 			rsp = Response(f"Error: Missing field '{field}'")

@@ -6,6 +6,7 @@ class String:
 		self.kwargs = kwargs
 		self.min = self.kwargs.get("min")
 		self.max = self.kwargs.get("max")
+		self.optional = self.kwargs.get("optional")
 		
 		self.minimum = self.kwargs.get("minimum")
 		self.maximum = self.kwargs.get("maximum")
@@ -42,6 +43,7 @@ class Integer:
 		self.kwargs = kwargs
 		self.min = self.kwargs.get("min")
 		self.max = self.kwargs.get("max")
+		self.optional = self.kwargs.get("optional")
 		
 		self.minimum = self.kwargs.get("minimum")
 		self.maximum = self.kwargs.get("maximum")
@@ -70,6 +72,7 @@ class Float:
 		self.kwargs = kwargs
 		self.min = self.kwargs.get("min")
 		self.max = self.kwargs.get("max")
+		self.optional = self.kwargs.get("optional")
 		
 		self.minimum = self.kwargs.get("minimum")
 		self.maximum = self.kwargs.get("maximum")
@@ -99,6 +102,7 @@ class Array:
 		self.kwargs = kwargs
 		self.min = self.kwargs.get("min")
 		self.max = self.kwargs.get("max")
+		self.optional = self.kwargs.get("optional")
 
 		self.minimum = self.kwargs.get("minimum")
 		self.maximum = self.kwargs.get("maximum")
@@ -132,8 +136,9 @@ class Array:
 		return True  # Return true if all conditions are met
 
 class Boolean:
-	def __init__(self) -> None:
-		pass #Its a boolean, what do you want it to do
+	def __init__(self, **kwargs) -> None:
+		self.kwargs = kwargs
+		self.optional = self.kwargs.get("optional")
 			
 	def validate(self, boolean) -> bool:
 		if type(boolean) != boolean:

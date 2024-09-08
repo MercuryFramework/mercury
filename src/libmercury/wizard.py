@@ -299,13 +299,7 @@ class {name}Jwt:
 		os.system(f"{map['interpreter']} app.py")
 
 	def generate(self):
-		if len(self.arguments) < 2:
-			print(f"{Fore.RED}Error:{Style.RESET_ALL} Command 'generate' requires at least 1 parameters")
-			print("Usage:")
-			print("generate <name>")
-			return
-		
-		result = generate(self.arguments[1], CLI)
+		result = generate(' '.join(self.arguments), CLI)
 
 	def unknown_command(self):
 		print(f"{Fore.RED}Error:{Style.RESET_ALL} Unknown Command")

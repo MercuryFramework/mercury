@@ -1,5 +1,7 @@
 from colorama import Fore, Style
 from werkzeug.utils import send_from_directory
+
+from libmercury.security.jwt import JWT
 from .validation import validate
 from .route_management import Route
 from werkzeug import Request, Response
@@ -85,6 +87,8 @@ class WSGIApp:
 			cookie = controller._auth_cookie
 			error = controller._error
 			negative_auth = controller._negative_auth
+			jwt_require = controller._jwt_require
+			validator = controller._jwt_validator
 			token = None
 
 			if cookie and not negative_auth: #Only raise an error if negative auth is not present 
@@ -111,6 +115,19 @@ class WSGIApp:
 				rsp = Response("Error: Invalid signature in token")
 				rsp.status_code = 403
 				return rsp(environ, start_response)
+			
+			# Finaly, check to see if the jwt requirements are met
+			if not negative_auth and jwt_require:
+				jwt = JWT(token)
+				print(args.get(jwt_require[1]))
+				print(jwt.payload.get(jwt_require[0]))
+				if not jwt.payload.get(jwt_require[0]) or not args.get(jwt_require[1]) == jwt.payload.get(jwt_require[0]):
+					if error:
+						return error()(environ, start_response)
+					rsp = Response("Error: JWT requirements not met")
+					rsp.status_code = 403
+					return rsp(environ, start_response)
+
 			#If you passed all the stages of verification, and you have negative auth, raise an error
 			if negative_auth:
 				if error:

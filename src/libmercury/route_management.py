@@ -13,6 +13,7 @@ def useAuthorization(auth, **kwargs):
 		wrapper._error = kwargs.get("error")
 		wrapper._negative_auth = kwargs.get("negative_auth")
 		wrapper._jwt_validator = kwargs.get("validator")
+		wrapper._jwt_require = kwargs.get("jwt_require")
 		return wrapper
 	return decorator
 

@@ -119,8 +119,6 @@ class WSGIApp:
 			# Finaly, check to see if the jwt requirements are met
 			if not negative_auth and jwt_require:
 				jwt = JWT(token)
-				print(args.get(jwt_require[1]))
-				print(jwt.payload.get(jwt_require[0]))
 				if not jwt.payload.get(jwt_require[0]) or not args.get(jwt_require[1]) == jwt.payload.get(jwt_require[0]):
 					if error:
 						return error()(environ, start_response)

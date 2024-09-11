@@ -153,8 +153,7 @@ class {name}Controller:
 		with open(f"src/validators/{name}Validator.py", "w") as f:
 			f.write(f"""from libmercury import Validator 
 class {name}Validator:
-	pass
-		""")
+	pass""")
 		
 		#Update Map.json
 		with open("map.json", "r") as f:

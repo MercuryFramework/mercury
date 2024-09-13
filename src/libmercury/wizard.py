@@ -11,7 +11,7 @@ class CLI:
 	def __init__(self, arguments) -> None:
 		self.arguments = arguments
 
-	def execute(self):
+	def execute(self) -> None:
 		try:
 			with open(".mercury", "r") as f:
 				os.chdir(f.read())
@@ -30,7 +30,7 @@ class CLI:
 			return
 		try:
 			commands[self.arguments[0]]()
-		except KeyError:
+		except KeyError as e:
 			self.unknown_command()
 
 	def init(self):

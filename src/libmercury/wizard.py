@@ -93,7 +93,7 @@ run_simple("localhost", 8000, app)""")
 		create_mercury_table(f"sqlite:///{directory}/src/cargo/dev.db")
 		print(f"{Fore.BLUE}[Initializer]{Style.RESET_ALL} Initialized project in directory: '{directory}'")
 
-	def _import_module(self, file_path):
+	def _import_module(self, file_path: str):
 		module_name = os.path.splitext(os.path.basename(file_path))[0]
 		spec = importlib.util.spec_from_file_location(module_name, file_path)
 		module = importlib.util.module_from_spec(spec)

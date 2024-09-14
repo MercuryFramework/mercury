@@ -124,7 +124,7 @@ run_simple("localhost", 8000, app)""")
 			print("Usage:")
 			print("create <thing> <named>")
 	
-	def _create_controller(self, name):
+	def _create_controller(self, name: str) -> None:
 		#Create placeholder
 		with open(f"src/controllers/{name}Controller.py", "w") as f:
 			f.write(f"""from libmercury import GETRoute, Request, Response
@@ -168,7 +168,7 @@ class {name}Validator:
 
 		print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/validators/{name}Validator.py")
 
-	def _create_migration(self, message):
+	def _create_migration(self, message: str) -> None:
 		#Get all models
 		with open("map.json", "r") as f:
 			map_json = loads(f.read())
@@ -183,7 +183,7 @@ class {name}Validator:
 		migrator = MigrationSystem("src/cargo/connection.py", model_paths)
 		migrator._create_migration(message)
 
-	def _create_model(self, name):
+	def _create_model(self, name: str) -> None:
 		with open(f"src/cargo/{name}Model.py", "w") as f:
 			f.write(f"""from libmercury.db import Column, Integer, Base
 
@@ -202,7 +202,7 @@ class {name}(Base):
 			f.write(dumps(map_json))
 		print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/cargo/{name}Model.py")
 
-	def _create_jwt(self, name):
+	def _create_jwt(self, name: str) -> None:
 		key_type = keygen.main(name)
 		public_key = f"{name}Public_key.pem"
 		private_key = f"{name}Private_key.pem"
@@ -238,7 +238,7 @@ class {name}Jwt:
 		
 		print(f"{Fore.BLUE}[CODEGEN]{Style.RESET_ALL} Successfully created src/cargo/{name}Jwt.py")
 
-	def migrate(self):
+	def migrate(self) -> None:
 		# Extract the database URL from the `Connection` object
 		module = self._import_module("src/cargo/connection.py")
 		if hasattr(module, 'Connection'):
@@ -292,18 +292,18 @@ class {name}Jwt:
 			map["security"] = list(set(map["security"]))
 			f.write(dumps(map))
 
-	def run(self):
+	def run(self) -> None:
 		with open("map.json", "r") as f:
 			map = loads(f.read())
 		os.system(f"{map['interpreter']} app.py")
 
-	def generate(self):
+	def generate(self) -> None:
 		result = generate(' '.join(self.arguments), CLI)
 
-	def unknown_command(self):
+	def unknown_command(self) -> None:
 		print(f"{Fore.RED}Error:{Style.RESET_ALL} Unknown Command")
 
-	def version_display(self):
+	def version_display(self) -> None:
 		print(r""" /$$		/$$															   
 | $$$	 /$$$															 
 | $$$$	/$$$$  /$$$$$$	 /$$$$$$   /$$$$$$$ /$$   /$$  /$$$$$$	/$$   /$$

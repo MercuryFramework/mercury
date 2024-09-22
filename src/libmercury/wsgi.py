@@ -125,15 +125,38 @@ class WSGIApp:
 				return rsp(environ, start_response)
 			
 			# Finaly, check to see if the jwt requirements are met
-			if not negative_auth and jwt_require:
-				jwt = JWT(token)
-				segment = self.get_nested_value(jwt.payload, jwt_require[0])
-				if not segment or not segment == args.get(jwt_require[1]):
+			if negative_auth or not jwt_require:
+				return None
+		
+			# Initialize JWT and retrieve the segment
+			jwt = JWT(token)
+			segment = self.get_nested_value(jwt.payload, jwt_require[0])
+			target, function = jwt_require[1], None
+		
+			# Handle case where target is a tuple (target, function)
+			if isinstance(target, tuple):
+				target, function = target[0], target[1]
+		
+			if segment != args.get(target) and not function:
+				if error:
+					return error()(environ, start_response)
+				rsp = Response("Error: JWT requirements not met")
+				rsp.status_code = 403
+				return rsp(environ, start_response)
+		
+			try:
+				if function and not function(args.get(target)):
 					if error:
 						return error()(environ, start_response)
 					rsp = Response("Error: JWT requirements not met")
 					rsp.status_code = 403
 					return rsp(environ, start_response)
+			except:
+				if error:
+						return error()(environ, start_response)
+				rsp = Response("Error: JWT requirements not met")
+				rsp.status_code = 403
+				return rsp(environ, start_response)
 
 			#If you passed all the stages of verification, and you have negative auth, raise an error
 			if negative_auth:

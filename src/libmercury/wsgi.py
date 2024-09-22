@@ -1,6 +1,5 @@
 from colorama import Fore, Style
 from werkzeug.utils import send_from_directory
-
 from libmercury.security.jwt import JWT
 from .validation import validate
 from .route_management import Route
@@ -56,6 +55,15 @@ class WSGIApp:
 			if callable(method) and hasattr(method, '_route_method') and hasattr(method, '_route_url'):
 				route = Route(method._route_method, method._route_url, method)
 				self.routes.append(route)
+
+	def get_nested_value(self, data, key_path, default=None):
+		keys = key_path.split('.')
+		for key in keys:
+			if isinstance(data, dict):
+				data = data.get(key, default)
+			else:
+				return default
+		return data
 
 	def wsgi_handler(self, environ, start_response):
 		# Create a Request object from WSGI environment
@@ -119,7 +127,8 @@ class WSGIApp:
 			# Finaly, check to see if the jwt requirements are met
 			if not negative_auth and jwt_require:
 				jwt = JWT(token)
-				if not jwt.payload.get(jwt_require[0]) or not args.get(jwt_require[1]) == jwt.payload.get(jwt_require[0]):
+				segment = self.get_nested_value(jwt.payload, jwt_require[0])
+				if not segment or not segment == args.get(jwt_require[1]):
 					if error:
 						return error()(environ, start_response)
 					rsp = Response("Error: JWT requirements not met")

@@ -5,6 +5,7 @@ from .validation import validate
 from .route_management import Route
 from werkzeug import Request, Response
 from marsrouter import Router
+from typing import Callable, Iterable
 import importlib.util
 import json
 import os
@@ -16,13 +17,13 @@ class WSGIApp:
 		self.router = Router()
 		self.load_mapper()
 
-	def load_mapper(self):
+	def load_mapper(self) -> None:
 		for route in self.routes:
 			if route.url[-1] == "/" and route.url != "/":
 				route.url = route.url[:-1]
 			self.router.add_route(route.url, route.handler, methods=[route.method])
 
-	def load_project(self):
+	def load_project(self) -> None:
 		# Load the map.json file
 		with open('map.json') as f:
 			config = json.load(f)
@@ -31,7 +32,7 @@ class WSGIApp:
 		for controller_path in set(config.get('controllers', [])):
 			self._load_controller(controller_path)
 
-	def _load_controller(self, controller_path):
+	def _load_controller(self, controller_path: str) -> None:
 		# Import the module
 		module_name = os.path.splitext(os.path.basename(controller_path))[0]
 		spec = importlib.util.spec_from_file_location(module_name, controller_path)
@@ -56,7 +57,7 @@ class WSGIApp:
 				route = Route(method._route_method, method._route_url, method)
 				self.routes.append(route)
 
-	def get_nested_value(self, data, key_path, default=None):
+	def get_nested_value(self, data: dict, key_path: str, default=None):
 		keys = key_path.split('.')
 		for key in keys:
 			if isinstance(data, dict):
@@ -65,7 +66,7 @@ class WSGIApp:
 				return default
 		return data
 
-	def wsgi_handler(self, environ, start_response):
+	def wsgi_handler(self, environ: dict, start_response: Callable) -> Iterable[bytes]:
 		# Create a Request object from WSGI environment
 		request = Request(environ)
 		
@@ -117,7 +118,7 @@ class WSGIApp:
 				if token.startswith("Bearer"):
 					token = token[7:]
 
-			if not negative_auth and not authorization._verify(token): #Only raise an error if negative auth is not present
+			if not authorization._verify(token) and not negative_auth: #Only raise an error if negative auth is not present
 				if error:
 					return error()(environ, start_response)
 				rsp = Response("Error: Invalid signature in token")
@@ -126,7 +127,7 @@ class WSGIApp:
 			
 			# Finaly, check to see if the jwt requirements are met
 			if negative_auth or not jwt_require:
-				return None
+				return []
 		
 			# Initialize JWT and retrieve the segment
 			jwt = JWT(token)
@@ -153,7 +154,7 @@ class WSGIApp:
 					return rsp(environ, start_response)
 			except:
 				if error:
-						return error()(environ, start_response)
+					return error()(environ, start_response)
 				rsp = Response("Error: JWT requirements not met")
 				rsp.status_code = 403
 				return rsp(environ, start_response)
@@ -187,7 +188,7 @@ class WSGIApp:
 						return error()
 					rsp = Response("Error: No data provided")
 					rsp.status_code = 400
-					return rsp
+					return rsp(environ, start_response)
 			if not data:
 				if error:
 					return error()
@@ -201,6 +202,5 @@ class WSGIApp:
 
 		return controller(request, *args.values())(environ, start_response)
 
-	def __call__(self, environ, start_response):
+	def __call__(self, environ: dict, start_response: Callable) -> Iterable[bytes]:
 		return self.wsgi_handler(environ, start_response)
-

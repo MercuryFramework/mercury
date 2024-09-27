@@ -1,34 +1,43 @@
-import json
-from werkzeug import Response
+from typing import Union, Any
+from werkzeug import Request, Response
 from werkzeug.utils import redirect
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.query import Query
+from libmercury.db import connection
+import json
 
-def get_connection():
+def get_connection() -> connection:
 	from src.cargo.connection import Connection
 	return Connection
 
-def query(model, **kwargs):
+def query(model, **kwargs) -> Query:
 	result = get_connection().Session.query(model).filter_by(**kwargs)
 	return result
 
-def exists(model, **kwargs):
+def exists(model, **kwargs) -> bool:
+	"""Finds if a model exists with the given query parameters"""
 	result = query(model, **kwargs).first()
 	if result == None:
 		return False
 	return True
 
-def reset_and_redirect(redirect_url, request):
-    """Redirects to the specified URL and resets all cookies."""
-    # Create a redirect response
-    rsp = redirect(redirect_url)
-    
-    # Clear all cookies
-    for cookie in request.cookies:
-        rsp.delete_cookie(cookie)
-    
-    return rsp
+def reset_and_redirect(redirect_url: str, request: Request) -> Response:
+	"""Redirects to the specified URL and resets all cookies."""
+	# Create a redirect response
+	rsp = redirect(redirect_url)
+	
+	# Clear all cookies
+	for cookie in request.cookies:
+		rsp.delete_cookie(cookie)
+	
+	return rsp
 
-def find_or_404(model, response_format="html", **kwargs):
+def find_or_404(model, response_format: str="html", **kwargs) -> Union[Response, Any]:
+	"""
+	:param model: The model to query
+	:pram response_format: The format of the response(defaults to html)
+	Finds the model or returns a 404 error in either json or html.
+	"""
 	result = query(model, **kwargs).first()
 
 	if result is None:
@@ -45,34 +54,31 @@ def find_or_404(model, response_format="html", **kwargs):
 	
 	return result
 
-def paginate(model, page=1, per_page=10, **kwargs):
+def paginate(model, page=1, per_page=10, **kwargs) -> Query:
 	"""Paginate the results of a query on a SQLAlchemy model, returning a query object."""
 	query_result = query(model, **kwargs)  # Assuming `query` is a function that returns a query object
 	paginated_query = query_result.offset((page - 1) * per_page).limit(per_page)
 	
 	return paginated_query
 
-def expires_in(seconds: int):
+def expires_in(seconds: int) -> int:
 	import time
 	return int(time.time())+seconds
 
-def model_to_dict(obj):
-		"""Converts a SQLAlchemy model instance to a dictionary, excluding specified fields."""
-		return {
-			c.name: getattr(obj, c.name)
-			for c in obj.__table__.columns
-			if c.name not in exclude
-		}
+def model_to_dict(obj, exclude=[]) -> dict:
+	"""Converts a SQLAlchemy model instance to a dictionary, excluding specified fields."""
+	return {
+		c.name: getattr(obj, c.name)
+		for c in obj.__table__.columns
+		if c.name not in exclude
+	}
 
-def model_to_json(model, exclude=None):
+def model_to_json(model, exclude=[]) -> str:
 	"""Converts a SQLAlchemy model instance to a JSON string, with optional exclusion of specified fields."""
-	if exclude is None:
-		exclude = []
-
-	model_dict = model_to_dict(model)
+	model_dict = model_to_dict(model, exclude)
 	return json.dumps(model_dict)
 
-def json_to_object(json_dict, model_class):
+def json_to_object(json_str: str, model_class) -> dict:
 	"""Converts a JSON string to a SQLAlchemy model instance, excluding the primary key.
 
 	Args:
@@ -84,7 +90,7 @@ def json_to_object(json_dict, model_class):
 	"""
 	try:
 		# Parse the JSON string
-		data = json_dict
+		data = json.loads(json_str)
 		# Get the primary key column name
 		primary_key_column = model_class.__table__.primary_key.columns.keys()[0]
 		
@@ -116,7 +122,7 @@ def json_to_object(json_dict, model_class):
 		# Handle any other exceptions
 		return {"error": "Unexpected error", "details": str(e)}
 
-def update_object(object, updates):
+def update_object(object, updates: dict) -> Response:
 	session = get_connection().Session
 	"""Update an SQLAlchemy object with the provided dictionary of changes.
 	
@@ -182,4 +188,3 @@ def update_object(object, updates):
 			status=500,
 			mimetype='application/json'
 		)
-

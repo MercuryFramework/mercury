@@ -46,7 +46,7 @@ def useJWTValidator(validator, **kwargs):
 		return wrapped_function
 	return decorator
 
-def route(method, url):
+def route(method: str, url: str):
 	def decorator(func):
 		@wraps(func)
 		def wrapper(*args, **kwargs):
@@ -56,35 +56,35 @@ def route(method, url):
 		return wrapper
 	return decorator
 # HTTP method specific decorators
-def GETRoute(url):
+def GETRoute(url: str):
 	return route('GET', url)
 
-def POSTRoute(url):
+def POSTRoute(url: str):
 	return route('POST', url)
 
-def DELETERoute(url):
+def DELETERoute(url: str):
 	return route('DELETE', url)
 
-def PATCHRoute(url):
+def PATCHRoute(url: str):
 	return route('PATCH', url)
 
-def PUTRoute(url):
+def PUTRoute(url: str):
 	return route('PUT', url)
 
-def OPTIONSRoute(url):
+def OPTIONSRoute(url: str):
 	return route('OPTIONS', url)
 
-def HEADRoute(url):
+def HEADRoute(url: str):
 	return route('HEAD', url)
 
-def CONTROLRoute(url):
+def CONTROLRoute(url: str):
 	return route('CONTROL', url) 
 
-def TRACERoute(url):
+def TRACERoute(url: str):
 	return route('TRACE', url)
 
 class Route:
-	def __init__(self, method, url, handler):
+	def __init__(self, method: str, url: str, handler):
 		self.method = method
 		self.url = url
 		self.handler = handler
@@ -92,7 +92,7 @@ class Route:
 	def __repr__(self):
 		return f"Route(method={self.method}, url='{self.url}', handler={self.handler})"
 
-def use_template(template_name: str, **kwargs):
+def use_template(template_name: str, **kwargs) -> Response:
 	enviroment = Environment(loader=FileSystemLoader("src/templates"))
 	template = enviroment.get_template(template_name)
 	response = Response(template.render(kwargs))
